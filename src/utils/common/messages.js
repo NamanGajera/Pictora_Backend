@@ -68,6 +68,12 @@ const Messages = {
 
   USER_NOT_FOUND: "User not found",
   INVALID_CREDENTIAL: "Invalid credentials",
+
+  POST_NOT_FOUND: "Post not found",
+  ALREADY_LIKED: "You have already liked this post",
+  ALREADY_SAVED: "You have already saved this post",
+  ALREADY_ARCHIVED: "You have already archived this post",
+  UNAUTHORIZED: "You are not authorized to perform this action",
 };
 
 module.exports = Messages;

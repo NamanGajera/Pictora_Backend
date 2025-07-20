@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
   class UserProfile extends Model {
     static associate(models) {
       UserProfile.belongsTo(models.User, {
-        foreignKey: "user_id",
+        foreignKey: "userId",
         as: "user",
       });
     }
@@ -21,7 +21,7 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
       },
-      user_id: {
+      userId: {
         type: DataTypes.UUID,
         allowNull: false,
       },
@@ -36,10 +36,9 @@ module.exports = (sequelize, DataTypes) => {
         values: Object.values(GENDER),
         defaultValue: GENDER.MALE,
       },
-      profile_picture: {
+      profilePicture: {
         type: DataTypes.STRING,
       },
-
       location: {
         type: DataTypes.STRING,
       },
@@ -48,7 +47,6 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: "UserProfile",
       tableName: "UserProfiles",
-      underscored: true,
     }
   );
 

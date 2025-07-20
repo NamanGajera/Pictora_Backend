@@ -5,9 +5,29 @@ module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     static associate(models) {
       User.hasOne(models.UserProfile, {
-        foreignKey: "user_id",
+        foreignKey: "userId",
         as: "profile",
         onDelete: "CASCADE",
+      });
+      User.hasMany(models.Post, {
+        foreignKey: "userId",
+        onDelete: "CASCADE",
+        as: "mediaData",
+      });
+      User.hasMany(models.PostLike, {
+        foreignKey: "userId",
+        onDelete: "CASCADE",
+        as: "likedPost",
+      });
+      User.hasMany(models.PostSave, {
+        foreignKey: "userId",
+        onDelete: "CASCADE",
+        as: "savedPost",
+      });
+      User.hasMany(models.PostArchive, {
+        foreignKey: "userId",
+        onDelete: "CASCADE",
+        as: "archivedPost",
       });
     }
   }
@@ -19,10 +39,10 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
       },
-      full_name: {
+      fullName: {
         type: DataTypes.STRING,
       },
-      username: {
+      userName: {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true,
@@ -32,7 +52,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         unique: true,
       },
-      password_hash: {
+      password: {
         type: DataTypes.TEXT,
         allowNull: false,
       },
@@ -41,7 +61,6 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: "User",
       tableName: "Users",
-      underscored: true,
     }
   );
 

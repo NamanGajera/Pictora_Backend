@@ -14,7 +14,6 @@ class UserService {
   async login(data) {
     try {
       const user = await userRepository.findOne({ email: data.email });
-      console.log("user data", user);
       if (!user) {
         throw new AppError(Messages.USER_NOT_FOUND, STATUS_CODE.NOT_FOUND);
       }
@@ -28,6 +27,7 @@ class UserService {
       const token = generateToken(user.id);
       return { token, user };
     } catch (error) {
+      console.log("Login Error -->>", error);
       if (error instanceof AppError) {
         throw error;
       }
@@ -50,22 +50,23 @@ class UserService {
     const transaction = await db.sequelize.transaction();
 
     try {
-      const { full_name, username, email, password } = data;
+      const { fullName, userName, email, password } = data;
       const hashedPassword = await bcrypt.hash(password, 10);
+      console.log("User Data --->>>>>> ", data);
       const user = await userRepository.registerUser(
         {
-          full_name,
-          username,
+          fullName,
+          userName,
           email,
-          password_hash: hashedPassword,
+          password: hashedPassword,
         },
         transaction
       );
       await userProfileRepository.addUserData(
         {
-          user_id: user.id,
-          full_name,
-          username,
+          userId: user.id,
+          fullName,
+          userName,
           email,
         },
         transaction

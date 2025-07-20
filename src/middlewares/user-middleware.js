@@ -32,9 +32,9 @@ class UserMiddleware {
       ErrorResponse.statusCode = STATUS_CODE.BAD_REQUEST;
       return res.status(STATUS_CODE.BAD_REQUEST).json(ErrorResponse);
     }
-    const { fullName, username, email, password } = req.body;
+    const { fullName, userName, email, password } = req.body;
 
-    const requiredFields = ["fullName", "username", "email", "password"];
+    const requiredFields = ["fullName", "userName", "email", "password"];
     for (const field of requiredFields) {
       if (!req.body[field]) {
         ErrorResponse.message = Messages.REQUIRED_FIELD(field);

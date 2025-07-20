@@ -26,11 +26,11 @@ class UserController {
     }
   }
   async register(req, res) {
-    const { fullName, username, email, password } = req.body;
+    const { fullName, userName, email, password } = req.body;
     try {
       const user = await UserService.userRegister({
-        full_name: fullName,
-        username,
+        fullName,
+        userName,
         email,
         password,
       });

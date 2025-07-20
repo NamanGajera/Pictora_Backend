@@ -9,9 +9,10 @@ module.exports = {
       id: {
         type: Sequelize.UUID,
         defaultValue: Sequelize.UUIDV4,
+        allowNull: false,
         primaryKey: true,
       },
-      user_id: {
+      userId: {
         type: Sequelize.UUID,
         allowNull: false,
         references: {
@@ -33,7 +34,7 @@ module.exports = {
         values: Object.values(GENDER),
         defaultValue: GENDER.MALE,
       },
-      profile_picture: {
+      profilePicture: {
         type: Sequelize.STRING,
         allowNull: true,
       },
@@ -42,12 +43,12 @@ module.exports = {
         allowNull: true,
       },
 
-      created_at: {
+      createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
         defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
-      updated_at: {
+      updatedAt: {
         allowNull: false,
         type: Sequelize.DATE,
         defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),

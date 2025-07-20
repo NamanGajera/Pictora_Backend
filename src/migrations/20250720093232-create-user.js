@@ -8,11 +8,11 @@ module.exports = {
         allowNull: false,
         primaryKey: true,
       },
-      full_name: {
+      fullName: {
         type: Sequelize.STRING(100),
         allowNull: false,
       },
-      username: {
+      userName: {
         type: Sequelize.STRING(50),
         allowNull: false,
         unique: true,
@@ -22,22 +22,23 @@ module.exports = {
         allowNull: false,
         unique: true,
       },
-      password_hash: {
+      password: {
         type: Sequelize.TEXT,
         allowNull: false,
       },
-
-      created_at: {
+      createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
         defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
-      updated_at: {
+      updatedAt: {
         allowNull: false,
         type: Sequelize.DATE,
         defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
     });
+    await queryInterface.addIndex("Users", ["userName"]);
+    await queryInterface.addIndex("Users", ["fullName"]);
   },
   down: async (queryInterface) => {
     await queryInterface.dropTable("Users");

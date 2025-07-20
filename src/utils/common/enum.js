@@ -19,4 +19,9 @@ module.exports = {
     Female: "Female",
     OTHER: "Other",
   },
+  POST_TYPE: {
+    IMAGE: "Image",
+    VIDEO: "VIDEO",
+    REEL: "Reel",
+  },
 };
