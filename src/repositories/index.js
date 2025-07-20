@@ -1,0 +1,4 @@
+module.exports = {
+  UserRepository: require("./user-repository"),
+  UserProfileRepository: require("./user-profile-repository"),
+};
