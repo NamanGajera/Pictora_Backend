@@ -74,6 +74,8 @@ const Messages = {
   ALREADY_SAVED: "You have already saved this post",
   ALREADY_ARCHIVED: "You have already archived this post",
   UNAUTHORIZED: "You are not authorized to perform this action",
+
+  POST_CREATED: "Post created successfully",
 };
 
 module.exports = Messages;

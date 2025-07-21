@@ -21,7 +21,6 @@ module.exports = {
   },
   POST_TYPE: {
     IMAGE: "Image",
-    VIDEO: "VIDEO",
-    REEL: "Reel",
+    VIDEO: "Video",
   },
 };

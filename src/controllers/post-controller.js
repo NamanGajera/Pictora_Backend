@@ -1,7 +1,12 @@
 const { PostService } = require("../services");
-const { Enums } = require("../utils/common");
-const { STATUS_CODE } = Enums;
+const {
+  SuccessResponse,
+  Enums,
+  Messages,
+  ErrorResponse,
+} = require("../utils/common");
 
+const { STATUS_CODE } = Enums;
 
 class PostController {
   async createPost(req, res) {
@@ -15,8 +20,9 @@ class PostController {
         caption,
         mediaFiles,
       });
-
-      return res.status(STATUS_CODE.CREATED).json(response);
+      SuccessResponse.data = response;
+      SuccessResponse.message = Messages.POST_CREATED;
+      return res.status(STATUS_CODE.OK).json(SuccessResponse);
     } catch (error) {
       console.error("CreatePost Error:", error);
       return res
@@ -27,8 +33,12 @@ class PostController {
 
   async getPost(req, res) {
     try {
-      const response = await PostService.getPostById(req.params.id);
-      return res.status(STATUS_CODE.OK).json(response);
+      const response = await PostService.getPostById({
+        userId: req.user.id,
+        postId: req.params.id,
+      });
+      SuccessResponse.data = response;
+      return res.status(STATUS_CODE.OK).json(SuccessResponse);
     } catch (error) {
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
@@ -41,92 +51,62 @@ class PostController {
   async getAllPosts(req, res) {
     try {
       const response = await PostService.getAllPosts({
-        userId: req.query.userId,
-      });
-      return res.status(STATUS_CODE.OK).json(response);
-    } catch (error) {
-      return res
-        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
-        .json({
-          error: error.message,
-        });
-    }
-  }
-
-  async updatePost(req, res) {
-    try {
-      const response = await PostService.updatePost(req.params.id, {
         userId: req.user.id,
-        caption: req.body.caption,
+      });
+      SuccessResponse.data = response;
+      return res.status(STATUS_CODE.OK).json(SuccessResponse);
+    } catch (error) {
+      return res
+        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .json({
+          error: error.message,
+        });
+    }
+  }
+  async togglePostLike(req, res) {
+    try {
+      const response = await PostService.togglePostLike({
+        userId: req.user.id,
+        postId: req.body.postId,
+        isLike: req.body.isLike,
       });
       return res.status(STATUS_CODE.OK).json(response);
     } catch (error) {
+      ErrorResponse.message = error.message;
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
-        .json({
-          error: error.message,
-        });
+        .json(ErrorResponse);
     }
   }
 
-  async deletePost(req, res) {
+  async togglePostSave(req, res) {
     try {
-      const response = await PostService.deletePost(req.params.id, req.user.id);
+      const response = await PostService.togglePostSave({
+        userId: req.user.id,
+        postId: req.body.postId,
+        isSave: req.body.isSave,
+      });
       return res.status(STATUS_CODE.OK).json(response);
     } catch (error) {
+      ErrorResponse.message = error.message;
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
-        .json({
-          error: error.message,
-        });
+        .json(ErrorResponse);
     }
   }
-
-  async likePost(req, res) {
+  async togglePostArchive(req, res) {
     try {
-      const response = await PostService.likePost(
-        req.params.postId,
-        req.user.id
-      );
+      const response = await PostService.togglePostArchive({
+        userId: req.user.id,
+        postId: req.body.postId,
+        isArchive: req.body.isArchive,
+      });
       return res.status(STATUS_CODE.OK).json(response);
     } catch (error) {
+      ErrorResponse.message = error.message;
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
-        .json({
-          error: error.message,
-        });
-    }
-  }
-
-  async savePost(req, res) {
-    try {
-      const response = await PostService.savePost(
-        req.params.postId,
-        req.user.id
-      );
-      return res.status(STATUS_CODE.OK).json(response);
-    } catch (error) {
-      return res
-        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
-        .json({
-          error: error.message,
-        });
-    }
-  }
-
-  async archivePost(req, res) {
-    try {
-      const response = await PostService.archivePost(
-        req.params.postId,
-        req.user.id
-      );
-      return res.status(STATUS_CODE.OK).json(response);
-    } catch (error) {
-      return res
-        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
-        .json({
-          error: error.message,
-        });
+        .json(ErrorResponse);
     }
   }
 }

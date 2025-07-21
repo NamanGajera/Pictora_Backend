@@ -20,10 +20,9 @@ module.exports = (sequelize, DataTypes) => {
   }
   PostMedia.init(
     {
-      id: {
+       id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        unique: true,
+        defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
       },
       postId: {

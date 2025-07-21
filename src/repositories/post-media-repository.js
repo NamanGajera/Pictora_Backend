@@ -6,15 +6,11 @@ class PostMediaRepository extends CrudRepository {
     super(PostMedia);
   }
 
-  async createMultiple(mediaArray, transaction) {
-    return this.model.bulkCreate(mediaArray, { transaction });
-  }
-
-  async getByPostId(postId) {
-    return this.model.findAll({
-      where: { postId },
-      order: [["createdAt", "ASC"]],
+  async createPostMedia(data, transaction) {
+    const response = await PostMedia.create(data, {
+      transaction: transaction,
     });
+    return response;
   }
 }
 

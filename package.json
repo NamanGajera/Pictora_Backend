@@ -20,7 +20,9 @@
     "multer": "^2.0.2",
     "mysql2": "^3.14.2",
     "nodemon": "^3.1.10",
+    "p-queue": "^6.6.2",
     "sequelize": "^6.37.7",
-    "sequelize-cli": "^6.6.3"
+    "sequelize-cli": "^6.6.3",
+    "stream": "^0.0.3"
   }
 }

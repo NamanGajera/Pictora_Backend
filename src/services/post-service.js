@@ -10,7 +10,7 @@ const { Messages, Enums } = require("../utils/common");
 const { BaseError } = require("sequelize");
 const AppError = require("../utils/errors/app-error");
 const CloudinaryService = require("./cloudinary-service");
-
+const { getFileType } = require("../utils/helpers/getFileType");
 
 const { STATUS_CODE } = Enums;
 const postRepository = new PostRepository();
@@ -21,32 +21,43 @@ const postMediaRepository = new PostMediaRepository();
 
 class PostService {
   async createPost(data) {
+    const transaction = await db.sequelize.transaction();
+
     try {
       const { userId, caption, mediaFiles } = data;
 
-      console.log("Post Data ------>>", data);
-      // Step 1: Create the post entry
-      const post = await postRepository.create({ userId, caption });
-      console.log("Post Data ------>>", post);
-      // Step 2: Upload each media to Cloudinary
       if (mediaFiles && mediaFiles.length > 0) {
-        for (const file of mediaFiles) {
-          const uploaded = await CloudinaryService.uploadBuffer(file.buffer, "posts");
-
-          const mediaType = getFileType(file.mimetype); // 'IMAGE' or 'VIDEO'
-
-          // Step 3: Save media info to PostMedia table
-          await postMediaRepository.create({
-            postId: post.id,
-            mediaUrl: uploaded.secure_url,
-            mediaType,
-          });
-        }
+        this.validateMediaFiles(mediaFiles);
       }
 
-      return post;
+      const post = await postRepository.createPost(
+        { userId, caption },
+        transaction
+      );
+
+      let mediaData = [];
+
+      if (mediaFiles && mediaFiles.length > 0) {
+        mediaData = await this.processMediaUploads(
+          mediaFiles,
+          post.id,
+          transaction
+        );
+      }
+
+      await transaction.commit();
+      return {
+        ...post.toJSON(),
+        mediaData,
+      };
     } catch (error) {
-      console.log("Create Post Error -->>", error);
+      await transaction.rollback();
+      console.error("Create Post Error -->>", error);
+
+      if (mediaData && mediaData.length > 0) {
+        await this.cleanupFailedUploads(mediaData);
+      }
+
       if (error instanceof AppError) {
         throw error;
       }
@@ -64,31 +75,99 @@ class PostService {
     }
   }
 
-  async getPostById(id) {
-    try {
-      const post = await postRepository.get(id);
-      if (!post) {
-        throw new AppError(Messages.POST_NOT_FOUND, STATUS_CODE.NOT_FOUND);
+  async processMediaUploads(mediaFiles, postId, transaction) {
+    const uploadPromises = mediaFiles.map((file) =>
+      this.uploadSingleMedia(file, postId, transaction).catch((error) => {
+        throw new AppError(
+          `Failed to upload media: ${error.message}`,
+          STATUS_CODE.BAD_REQUEST
+        );
+      })
+    );
+
+    return Promise.all(uploadPromises);
+  }
+
+  async uploadSingleMedia(file, postId, transaction) {
+    const uploaded = await CloudinaryService.uploadBuffer(file.buffer, "posts");
+
+    const mediaType = getFileType(file.mimetype);
+
+    return postMediaRepository.createPostMedia(
+      {
+        postId,
+        mediaUrl: uploaded.secure_url,
+        mediaType,
+      },
+      transaction
+    );
+  }
+
+  validateMediaFiles(mediaFiles) {
+    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+    const MAX_TOTAL_SIZE = 500 * 1024 * 1024; // 500MB
+    const ALLOWED_TYPES = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "video/mp4",
+      "video/quicktime",
+    ];
+
+    let totalSize = 0;
+
+    for (const file of mediaFiles) {
+      // Check file type
+      if (!ALLOWED_TYPES.includes(file.mimetype)) {
+        throw new AppError(
+          `Invalid file type: ${file.mimetype}`,
+          STATUS_CODE.BAD_REQUEST
+        );
       }
-      return post;
-    } catch (error) {
-      console.log("Get Post Error -->>", error);
-      if (error instanceof AppError) {
-        throw error;
+
+      // Check individual file size
+      if (file.size > MAX_FILE_SIZE) {
+        throw new AppError(
+          `File ${file.originalname} exceeds maximum size of ${
+            MAX_FILE_SIZE / (1024 * 1024)
+          }MB`,
+          STATUS_CODE.BAD_REQUEST
+        );
       }
+
+      totalSize += file.size;
+    }
+
+    if (totalSize > MAX_TOTAL_SIZE) {
       throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
+        `Total upload size exceeds maximum of ${
+          MAX_TOTAL_SIZE / (1024 * 1024)
+        }MB`,
+        STATUS_CODE.BAD_REQUEST
       );
     }
   }
 
-  async getAllPosts(query) {
-    try {
-      const filter = {};
-      if (query.userId) filter.userId = query.userId;
+  async cleanupFailedUploads(mediaData) {
+    const deletePromises = mediaData.map((media) => {
+      if (media.mediaUrl) {
+        const publicId = this.extractPublicId(media.mediaUrl);
+        return CloudinaryService.deleteFile(publicId).catch(console.error);
+      }
+    });
 
-      const posts = await postRepository.getAll(filter);
+    await Promise.all(deletePromises);
+  }
+
+  extractPublicId(url) {
+    const matches = url.match(/upload\/(?:v\d+\/)?([^\.]+)/);
+    return matches ? matches[1] : null;
+  }
+
+  async getAllPosts(data) {
+    try {
+      const { userId } = data;
+      const posts = await postRepository.getAllPost(userId, {});
       return posts;
     } catch (error) {
       console.log("Get All Posts Error -->>", error);
@@ -98,31 +177,52 @@ class PostService {
       );
     }
   }
-
-  async updatePost(id, data) {
-    const transaction = await db.sequelize.transaction();
+  async getPostById(data) {
     try {
-      const post = await postRepository.get(id);
+      const { userId, postId } = data;
+      const posts = await postRepository.getSinglePost(userId, postId);
+      return posts;
+    } catch (error) {
+      console.log("Get single Posts Error -->>", error);
+      if (error instanceof AppError) {
+        throw error;
+      }
+      if (error instanceof BaseError) {
+        const message =
+          error.errors?.[0]?.message ||
+          error.message ||
+          Messages.SOMETHING_WRONG;
+        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
+      }
+      throw new AppError(
+        Messages.SOMETHING_WRONG,
+        STATUS_CODE.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async togglePostLike(data) {
+    const { userId, postId, isLike } = data;
+    try {
+      const post = await postRepository.findOne({ id: postId });
+      console.log("Post Data", post);
+
       if (!post) {
         throw new AppError(Messages.POST_NOT_FOUND, STATUS_CODE.NOT_FOUND);
       }
-
-      if (post.userId !== data.userId) {
-        throw new AppError(Messages.UNAUTHORIZED, STATUS_CODE.UNAUTHORIZED);
-      }
-
-      const updatedPost = await postRepository.update(
-        id,
-        { caption: data.caption },
-        transaction
-      );
-      await transaction.commit();
-      return updatedPost;
+      const response = await postRepository.togglePostLike(data);
+      return response;
     } catch (error) {
-      await transaction.rollback();
-      console.log("Update Post Error -->>", error);
+      console.error("Error in PostService.toggleLike:", error);
       if (error instanceof AppError) {
         throw error;
+      }
+      if (error instanceof BaseError) {
+        const message =
+          error.errors?.[0]?.message ||
+          error.message ||
+          Messages.SOMETHING_WRONG;
+        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
       }
       throw new AppError(
         Messages.SOMETHING_WRONG,
@@ -130,27 +230,28 @@ class PostService {
       );
     }
   }
-
-  async deletePost(id, userId) {
-    const transaction = await db.sequelize.transaction();
+  async togglePostSave(data) {
+    const { userId, postId, isSaved } = data;
     try {
-      const post = await postRepository.get(id);
+      const post = await postRepository.findOne({ id: postId });
+      console.log("Post Data", post);
+
       if (!post) {
         throw new AppError(Messages.POST_NOT_FOUND, STATUS_CODE.NOT_FOUND);
       }
-
-      if (post.userId !== userId) {
-        throw new AppError(Messages.UNAUTHORIZED, STATUS_CODE.UNAUTHORIZED);
-      }
-
-      await postRepository.destroy(id, transaction);
-      await transaction.commit();
-      return { success: true };
+      const response = await postRepository.togglePostSave(data);
+      return response;
     } catch (error) {
-      await transaction.rollback();
-      console.log("Delete Post Error -->>", error);
+      console.error("Error in PostService.toggleSave:", error);
       if (error instanceof AppError) {
         throw error;
+      }
+      if (error instanceof BaseError) {
+        const message =
+          error.errors?.[0]?.message ||
+          error.message ||
+          Messages.SOMETHING_WRONG;
+        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
       }
       throw new AppError(
         Messages.SOMETHING_WRONG,
@@ -158,79 +259,28 @@ class PostService {
       );
     }
   }
-
-  async likePost(postId, userId) {
-    const transaction = await db.sequelize.transaction();
+  async togglePostArchive(data) {
+    const { postId } = data;
     try {
-      const existingLike = await postLikeRepository.findOne({ postId, userId });
-      if (existingLike) {
-        throw new AppError(Messages.ALREADY_LIKED, STATUS_CODE.BAD_REQUEST);
+      const post = await postRepository.findOne({ id: postId });
+      console.log("Post Data", post);
+
+      if (!post) {
+        throw new AppError(Messages.POST_NOT_FOUND, STATUS_CODE.NOT_FOUND);
       }
-
-      await postLikeRepository.create({ postId, userId }, transaction);
-      await postRepository.incrementLikeCount(postId, transaction);
-      await transaction.commit();
-
-      return { success: true };
+      const response = await postRepository.togglePostArchive(data);
+      return response;
     } catch (error) {
-      await transaction.rollback();
-      console.log("Like Post Error -->>", error);
+      console.error("Error in PostService.toggleArchive:", error);
       if (error instanceof AppError) {
         throw error;
       }
-      throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
-      );
-    }
-  }
-
-  async savePost(postId, userId) {
-    const transaction = await db.sequelize.transaction();
-    try {
-      const existingSave = await postSaveRepository.findOne({ postId, userId });
-      if (existingSave) {
-        throw new AppError(Messages.ALREADY_SAVED, STATUS_CODE.BAD_REQUEST);
-      }
-
-      await postSaveRepository.create({ postId, userId }, transaction);
-      await postRepository.incrementSaveCount(postId, transaction);
-      await transaction.commit();
-
-      return { success: true };
-    } catch (error) {
-      await transaction.rollback();
-      console.log("Save Post Error -->>", error);
-      if (error instanceof AppError) {
-        throw error;
-      }
-      throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
-      );
-    }
-  }
-
-  async archivePost(postId, userId) {
-    const transaction = await db.sequelize.transaction();
-    try {
-      const existingArchive = await postArchiveRepository.findOne({
-        postId,
-        userId,
-      });
-      if (existingArchive) {
-        throw new AppError(Messages.ALREADY_ARCHIVED, STATUS_CODE.BAD_REQUEST);
-      }
-
-      await postArchiveRepository.create({ postId, userId }, transaction);
-      await transaction.commit();
-
-      return { success: true };
-    } catch (error) {
-      await transaction.rollback();
-      console.log("Archive Post Error -->>", error);
-      if (error instanceof AppError) {
-        throw error;
+      if (error instanceof BaseError) {
+        const message =
+          error.errors?.[0]?.message ||
+          error.message ||
+          Messages.SOMETHING_WRONG;
+        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
       }
       throw new AppError(
         Messages.SOMETHING_WRONG,
