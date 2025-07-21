@@ -1,28 +1,49 @@
-"use strict";
 const db = require("../models");
 const {
   PostRepository,
   PostLikeRepository,
   PostSaveRepository,
   PostArchiveRepository,
+  PostMediaRepository,
 } = require("../repositories");
 const { Messages, Enums } = require("../utils/common");
 const { BaseError } = require("sequelize");
 const AppError = require("../utils/errors/app-error");
+const CloudinaryService = require("./cloudinary-service");
+
 
 const { STATUS_CODE } = Enums;
 const postRepository = new PostRepository();
 const postLikeRepository = new PostLikeRepository();
 const postSaveRepository = new PostSaveRepository();
 const postArchiveRepository = new PostArchiveRepository();
+const postMediaRepository = new PostMediaRepository();
 
 class PostService {
   async createPost(data) {
     try {
-      const post = await postRepository.create({
-        userId: data.userId,
-        caption: data.caption,
-      });
+      const { userId, caption, mediaFiles } = data;
+
+      console.log("Post Data ------>>", data);
+      // Step 1: Create the post entry
+      const post = await postRepository.create({ userId, caption });
+      console.log("Post Data ------>>", post);
+      // Step 2: Upload each media to Cloudinary
+      if (mediaFiles && mediaFiles.length > 0) {
+        for (const file of mediaFiles) {
+          const uploaded = await CloudinaryService.uploadBuffer(file.buffer, "posts");
+
+          const mediaType = getFileType(file.mimetype); // 'IMAGE' or 'VIDEO'
+
+          // Step 3: Save media info to PostMedia table
+          await postMediaRepository.create({
+            postId: post.id,
+            mediaUrl: uploaded.secure_url,
+            mediaType,
+          });
+        }
+      }
+
       return post;
     } catch (error) {
       console.log("Create Post Error -->>", error);

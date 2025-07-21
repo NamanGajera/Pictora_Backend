@@ -14,6 +14,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
+console.log({
+  DB_NAME: process.env.DB_NAME,
+  DB_USER: process.env.DB_USER,
+  DB_PASSWORD: process.env.DB_PASSWORD,
+  DB_HOST: process.env.DB_HOST,
+});
 app.use("/api", routes);
 
 app.use((req, res, next) => {

@@ -1,21 +1,20 @@
-"use strict";
 const express = require("express");
 const router = express.Router();
 const { PostController } = require("../controllers");
-const { AuthMiddleware } = require("../middlewares");
+const { fileUpload } = require("../middlewares/flie-upload-middleware");
+const authenticate = require("../middlewares/auth-middleware");
 
-router.use(AuthMiddleware.authenticate);
 
 // Post CRUD routes
-router.post("/", PostController.createPost);
-router.get("/", PostController.getAllPosts);
-router.get("/:id", PostController.getPost);
-router.put("/:id", PostController.updatePost);
-router.delete("/:id", PostController.deletePost);
+router.post("/", authenticate, fileUpload.array("media", 10), PostController.createPost);
+router.get("/", authenticate, PostController.getAllPosts);
+router.get("/:id", authenticate, PostController.getPost);
+router.put("/:id", authenticate, PostController.updatePost);
+router.delete("/:id", authenticate, PostController.deletePost);
 
 // Post interaction routes
-router.post("/:postId/like", PostController.likePost);
-router.post("/:postId/save", PostController.savePost);
-router.post("/:postId/archive", PostController.archivePost);
+router.post("/:postId/like", authenticate, PostController.likePost);
+router.post("/:postId/save", authenticate, PostController.savePost);
+router.post("/:postId/archive", authenticate, PostController.archivePost);
 
 module.exports = router;

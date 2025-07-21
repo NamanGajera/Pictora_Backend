@@ -1,3 +1,5 @@
+require("dotenv").config(); // ← this MUST come before using process.env
+
 const { Sequelize } = require("sequelize");
 
 const db = new Sequelize(
