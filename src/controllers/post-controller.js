@@ -13,12 +13,15 @@ class PostController {
     try {
       const { caption } = req.body;
       const userId = req.user.id;
-      const mediaFiles = req.files || [];
-
+      const mediaFiles = req.files?.media || [];
+      const thumbnailFiles = req.files?.thumbnails || [];
+      console.log("Post data in controller -> ", mediaFiles);
+      console.log("Post data in thumbnails -> ", thumbnailFiles);
       const response = await PostService.createPost({
         userId,
         caption,
         mediaFiles,
+        thumbnailFiles,
       });
       SuccessResponse.data = response;
       SuccessResponse.message = Messages.POST_CREATED;
@@ -52,8 +55,57 @@ class PostController {
     try {
       const response = await PostService.getAllPosts({
         userId: req.user.id,
+        filterUserId: req.query.userId,
       });
       SuccessResponse.data = response;
+      return res.status(STATUS_CODE.OK).json(SuccessResponse);
+    } catch (error) {
+      return res
+        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .json({
+          error: error.message,
+        });
+    }
+  }
+  async getLikedPosts(req, res) {
+    try {
+      const response = await PostService.getLikedPosts({
+        userId: req.user.id,
+      });
+      SuccessResponse.data = response;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      return res.status(STATUS_CODE.OK).json(SuccessResponse);
+    } catch (error) {
+      return res
+        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .json({
+          error: error.message,
+        });
+    }
+  }
+  async getSavedPosts(req, res) {
+    try {
+      const response = await PostService.getSavedPosts({
+        userId: req.user.id,
+      });
+      SuccessResponse.data = response;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      return res.status(STATUS_CODE.OK).json(SuccessResponse);
+    } catch (error) {
+      return res
+        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .json({
+          error: error.message,
+        });
+    }
+  }
+  async getArchivedPosts(req, res) {
+    try {
+      const response = await PostService.getArchivedPosts({
+        userId: req.user.id,
+      });
+      SuccessResponse.data = response;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
       return res.status(STATUS_CODE.OK).json(SuccessResponse);
     } catch (error) {
       return res
@@ -102,6 +154,21 @@ class PostController {
         isArchive: req.body.isArchive,
       });
       return res.status(STATUS_CODE.OK).json(response);
+    } catch (error) {
+      ErrorResponse.message = error.message;
+      return res
+        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .json(ErrorResponse);
+    }
+  }
+  async deletePost(req, res) {
+    try {
+      const response = await PostService.deletePost({
+        postId: req.params.postId,
+      });
+      return res
+        .status(STATUS_CODE.OK)
+        .json({ statusCode: STATUS_CODE.OK, message: Messages.POST_DELETE });
     } catch (error) {
       ErrorResponse.message = error.message;
       return res

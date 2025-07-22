@@ -9,10 +9,16 @@ const authenticate = require("../middlewares/auth-middleware");
 router.post(
   "/",
   authenticate,
-  fileUpload.array("media", 10),
+  fileUpload.fields([
+    { name: "media", maxCount: 10 },
+    { name: "thumbnails", maxCount: 10 },
+  ]),
   PostController.createPost
 );
 router.get("/", authenticate, PostController.getAllPosts);
+router.get("/like", authenticate, PostController.getLikedPosts);
+router.get("/save", authenticate, PostController.getSavedPosts);
+router.get("/archive", authenticate, PostController.getArchivedPosts);
 router.get("/:id", authenticate, PostController.getPost);
 
 // Post interaction routes
@@ -35,4 +41,5 @@ router.post(
   PostController.togglePostArchive
 );
 
+router.delete("/:postId", authenticate, PostController.deletePost);
 module.exports = router;

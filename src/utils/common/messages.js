@@ -34,6 +34,7 @@ const Messages = {
   DELETED_SUCCESS: "Record deleted successfully",
   OPERATION_SUCCESS: "Operation completed successfully",
   OPERATION_FAILED: "Operation failed",
+  FETCHED_SUCCESS: "Data fetched successfully",
 
   // Duplicate & Conflict
   ALREADY_EXISTS: (entity) => `${entity} already exists`,
@@ -50,6 +51,8 @@ const Messages = {
   FILE_UPLOAD_ERROR: "File upload failed",
   INVALID_FILE_TYPE: "Invalid file type",
   FILE_TOO_LARGE: "File size exceeds limit",
+  MEDIA_UPLOAD_SUCCESS: "Media uploaded successfully",
+  MEDIA_UPLOAD_FAILED: "Media upload failed",
 
   // Status Messages
   ACTIVE: "Active",
@@ -66,16 +69,48 @@ const Messages = {
   REQUEST_TIMEOUT: "Request timeout",
   TOO_MANY_REQUESTS: "Too many requests, please try again later",
 
+  // User Related
   USER_NOT_FOUND: "User not found",
   INVALID_CREDENTIAL: "Invalid credentials",
+  PROFILE_UPDATED: "Profile updated successfully",
 
+  // Post Related
   POST_NOT_FOUND: "Post not found",
+  POST_CREATED: "Post created successfully",
+  POST_UPDATED: "Post updated successfully",
+  POST_DELETED: "Post deleted successfully",
+  POST_LIKED: "Post liked successfully",
+  POST_UNLIKED: "Post unliked successfully",
+  POST_SAVED: "Post saved successfully",
+  POST_UNSAVED: "Post unsaved successfully",
+  POST_ARCHIVED: "Post archived successfully",
+  POST_UNARCHIVED: "Post unarchived successfully",
+  POST_FETCHED: "Post fetched successfully",
+  POSTS_FETCHED: "Posts fetched successfully",
+  POST_SHARED: "Post shared successfully",
+  POST_VIEWED: "Post viewed successfully",
+  POST_COMMENTED: "Comment added successfully",
+  POST_COMMENT_DELETED: "Comment deleted successfully",
+  POST_COMMENT_UPDATED: "Comment updated successfully",
   ALREADY_LIKED: "You have already liked this post",
   ALREADY_SAVED: "You have already saved this post",
   ALREADY_ARCHIVED: "You have already archived this post",
-  UNAUTHORIZED: "You are not authorized to perform this action",
+  NOT_LIKED: "You haven't liked this post yet",
+  NOT_SAVED: "You haven't saved this post yet",
+  NOT_ARCHIVED: "You haven't archived this post yet",
+  UNAUTHORIZED_POST_ACCESS: "You are not authorized to access this post",
+  UNAUTHORIZED_POST_ACTION:
+    "You are not authorized to perform this action on the post",
 
-  POST_CREATED: "Post created successfully",
+  // Media Related
+  MEDIA_ADDED: "Media added to post successfully",
+  MEDIA_REMOVED: "Media removed from post successfully",
+  MEDIA_NOT_FOUND: "Media not found",
+  MEDIA_LIMIT_EXCEEDED: "Maximum media limit exceeded for this post",
+
+  // Transaction Related
+  TRANSACTION_FAILED: "Transaction failed",
+  TRANSACTION_SUCCESS: "Transaction completed successfully",
 };
 
 module.exports = Messages;

@@ -20,7 +20,7 @@ module.exports = (sequelize, DataTypes) => {
   }
   PostMedia.init(
     {
-       id: {
+      id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
@@ -32,6 +32,9 @@ module.exports = (sequelize, DataTypes) => {
       mediaUrl: {
         type: DataTypes.STRING,
         allowNull: false,
+      },
+      thumbnail: {
+        type: DataTypes.STRING,
       },
       mediaType: {
         type: DataTypes.ENUM,

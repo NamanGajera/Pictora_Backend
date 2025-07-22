@@ -4,12 +4,15 @@ const {
   PostSave,
   PostLike,
   PostArchive,
+  User,
   sequelize,
 } = require("../models");
-const { Sequelize } = require("sequelize");
-const { STATUS_CODE } = require("../utils/common").Enums;
+const { Sequelize, where } = require("sequelize");
+const { Enums, Messages } = require("../utils/common");
 const CrudRepository = require("./crud-repository");
 const AppError = require("../utils/errors/app-error");
+
+const { STATUS_CODE } = Enums;
 
 class PostRepository extends CrudRepository {
   constructor() {
@@ -17,222 +20,246 @@ class PostRepository extends CrudRepository {
   }
 
   async createPost(data, transaction) {
-    const response = await Post.create(data, {
-      transaction: transaction,
-    });
-    return response;
+    return await Post.create(data, { transaction });
+  }
+
+  #buildBasePostQuery(userId) {
+    if (!userId) {
+      throw new AppError(
+        Messages.REQUIRED_FIELD("User ID"),
+        STATUS_CODE.BAD_REQUEST
+      );
+    }
+
+    return {
+      include: [
+        {
+          model: PostMedia,
+          as: "mediaData",
+        },
+      ],
+      attributes: {
+        include: [
+          this.#buildExistsAttribute("PostLikes", userId, "isLiked"),
+          this.#buildExistsAttribute("PostSaves", userId, "isSaved"),
+        ],
+      },
+    };
+  }
+
+  // Helper to build EXISTS attributes
+  #buildExistsAttribute(table, userId, alias) {
+    return [
+      Sequelize.literal(`
+        EXISTS (
+          SELECT 1 FROM ${table}
+          WHERE ${table}.postId = Post.id
+          AND ${table}.userId = ${sequelize.escape(userId)}
+        )
+      `),
+      alias,
+    ];
+  }
+
+  // Format post response consistently
+  #formatPostResponse(posts) {
+    if (Array.isArray(posts)) {
+      return posts.map((post) => this.#formatSinglePost(post));
+    }
+    return this.#formatSinglePost(posts);
+  }
+
+  #formatSinglePost(post) {
+    const data = post.get({ plain: true });
+    return {
+      ...data,
+      isLiked: Boolean(data.isLiked),
+      isSaved: Boolean(data.isSaved),
+    };
   }
 
   async getAllPost(userId, filter) {
-    try {
-      if (!userId) throw new Error("User ID is required");
+    const baseQuery = this.#buildBasePostQuery(userId);
 
-      const posts = await Post.findAll({
-        where: {
-          ...filter,
-        },
-        include: [
-          {
-            model: PostMedia,
-            as: "mediaData",
-            attributes: ["id", "mediaUrl", "mediaType"],
-          },
-          {
-            model: PostArchive, // Make sure this matches the association name
-            required: false,
-            attributes: [],
-            where: {
-              userId,
-            },
-          },
+    const posts = await Post.findAll({
+      ...baseQuery,
+      where: {
+        ...filter,
+        [Sequelize.Op.and]: [
+          Sequelize.literal(`
+            NOT EXISTS (
+              SELECT 1
+              FROM PostArchives
+              WHERE PostArchives.postId = Post.id
+              AND PostArchives.userId = ${sequelize.escape(userId)}
+            )
+          `),
         ],
-        attributes: {
-          include: [
-            [
-              Sequelize.literal(`
-              EXISTS (
-                SELECT 1
-                FROM PostLikes
-                WHERE PostLikes.postId = Post.id
-                AND PostLikes.userId = ${sequelize.escape(userId)}
-              )
-            `),
-              "isLiked",
-            ],
-            [
-              Sequelize.literal(`
-              EXISTS (
-                SELECT 1
-                FROM PostSaves
-                WHERE PostSaves.postId = Post.id
-                AND PostSaves.userId = ${sequelize.escape(userId)}
-              )
-            `),
-              "isSaved",
-            ],
-          ],
-        },
-        // Fixed HAVING clause - using backticks instead of double quotes
-        having: Sequelize.literal("`PostArchives`.`id` IS NULL"),
-        subQuery: false,
-      });
+      },
+    });
 
-      return posts.map((post) => {
-        const data = post.get({ plain: true });
-        return {
-          ...data,
-          isLiked: Boolean(data.isLiked),
-          isSaved: Boolean(data.isSaved),
-        };
-      });
-    } catch (error) {
-      console.error("Error in getAllPost:", error);
-      throw error;
-    }
+    return this.#formatPostResponse(posts);
   }
 
   async getSinglePost(userId, postId) {
+    const baseQuery = this.#buildBasePostQuery(userId);
+
+    const post = await Post.findOne({
+      ...baseQuery,
+      where: { id: postId },
+    });
+
+    if (!post) {
+      throw new AppError(Messages.POST_NOT_FOUND, STATUS_CODE.NOT_FOUND);
+    }
+
+    return this.#formatPostResponse(post);
+  }
+
+  async #getPostsByAssociation(userId, associationModel, associationName) {
+    const baseQuery = this.#buildBasePostQuery(userId);
+
+    const posts = await Post.findAll({
+      ...baseQuery,
+      include: [
+        ...baseQuery.include,
+        {
+          model: associationModel,
+          where: { userId },
+          attributes: [],
+        },
+      ],
+    });
+
+    return this.#formatPostResponse(posts);
+  }
+
+  async getLikedPostsByUser(userId) {
+    return this.#getPostsByAssociation(userId, PostLike, "PostLikes");
+  }
+
+  async getSavedPostsByUser(userId) {
+    return this.#getPostsByAssociation(userId, PostSave, "PostSaves");
+  }
+  async getArchivedPostsByUser(userId) {
+    return this.#getPostsByAssociation(userId, PostArchive, "PostArchives");
+  }
+  async getAllUserWhoLikePost(postId) {
     try {
-      console.log("User Id ==>>> ", userId);
-
-      if (!userId) {
-        throw new Error("User ID is required");
+      const post = await Post.findByPk(postId);
+      if (!post) {
+        throw new AppError(Messages.POST_NOT_FOUND, STATUS_CODE.NOT_FOUND);
       }
-
-      const post = await Post.findOne({
-        where: { id: postId },
+      const users = await User.findAll({
         include: [
           {
-            model: PostMedia,
-            as: "mediaData",
-            attributes: ["id", "mediaUrl", "mediaType"],
+            model: PostLike,
+            where: { postId },
+            attributes: [],
+            required: true,
           },
         ],
-        attributes: {
-          include: [
-            [
-              Sequelize.literal(`
-              EXISTS (
-                SELECT 1
-                FROM PostLikes
-                WHERE PostLikes.postId = Post.id
-                AND PostLikes.userId = ${sequelize.escape(userId)}
-              )
-            `),
-              "isLiked",
-            ],
-            [
-              Sequelize.literal(`
-              EXISTS (
-                SELECT 1
-                FROM PostSaves
-                WHERE PostSaves.postId = Post.id
-                AND PostSaves.userId = ${sequelize.escape(userId)}
-              )
-            `),
-              "isSaved",
-            ],
-          ],
-        },
+        attributes: ["id", "username", "profilePicture"],
       });
 
-      if (!post) {
-        throw new AppError("Post not found", STATUS_CODE.NOT_FOUND);
-      }
-
-      const result = post.get({ plain: true });
-
-      return {
-        ...result,
-        isLiked: Boolean(result.isLiked),
-        isSaved: Boolean(result.isSaved),
-      };
+      return users;
     } catch (error) {
-      console.error("Error in getSinglePost:", error);
+      console.error("Error in getAllUsersWhoLikedPost:", error);
       throw error;
+    }
+  }
+  async #togglePostAssociation({
+    userId,
+    postId,
+    isSet,
+    associationModel,
+    counterColumn,
+    successMessages,
+    errorMessages,
+  }) {
+    const existing = await associationModel.findOne({
+      where: { userId, postId },
+    });
+    const post = await Post.findOne({ where: { id: postId } });
+
+    if (!post) {
+      throw new AppError(Messages.POST_NOT_FOUND, STATUS_CODE.NOT_FOUND);
+    }
+
+    if (isSet) {
+      if (!existing) {
+        await associationModel.create({ userId, postId });
+        if (counterColumn) {
+          await post.increment(counterColumn, { by: 1 });
+          await post.reload();
+        }
+        return { status: true, message: successMessages.added };
+      }
+      return { status: true, message: errorMessages.alreadyAdded };
+    } else {
+      if (existing) {
+        await existing.destroy();
+        if (counterColumn) {
+          await post.decrement(counterColumn, { by: 1 });
+          await post.reload();
+        }
+        return { status: false, message: successMessages.removed };
+      }
+      return { status: false, message: errorMessages.notFound };
     }
   }
 
   async togglePostLike({ userId, postId, isLike }) {
-    const existing = await PostLike.findOne({ where: { userId, postId } });
-    const post = await Post.findOne({ where: { id: postId } });
-
-    if (!post) {
-      throw new Error("Post not found");
-    }
-
-    if (isLike) {
-      if (!existing) {
-        await PostLike.create({ userId, postId });
-        await post.increment("likeCount", { by: 1 });
-        await post.reload();
-        return { liked: true, message: "Post liked successfully" };
-      } else {
-        return { liked: true, message: "Post already liked" };
-      }
-    } else {
-      if (existing) {
-        await existing.destroy();
-        await post.decrement("likeCount", { by: 1 });
-        await post.reload();
-        return { liked: false, message: "Post disliked successfully" };
-      } else {
-        return { liked: false, message: "Post already unlike" };
-      }
-    }
+    return this.#togglePostAssociation({
+      userId,
+      postId,
+      isSet: isLike,
+      associationModel: PostLike,
+      counterColumn: "likeCount",
+      successMessages: {
+        added: Messages.POST_LIKED,
+        removed: Messages.POST_UNLIKED,
+      },
+      errorMessages: {
+        alreadyAdded: Messages.ALREADY_LIKED,
+        notFound: Messages.OPERATION_SUCCESS,
+      },
+    });
   }
 
   async togglePostSave({ userId, postId, isSave }) {
-    const existing = await PostSave.findOne({ where: { userId, postId } });
-    const post = await Post.findOne({ where: { id: postId } });
-
-    if (!post) {
-      throw new Error("Post not found");
-    }
-
-    if (isSave) {
-      if (!existing) {
-        await PostSave.create({ userId, postId });
-        await post.increment("saveCount", { by: 1 });
-        await post.reload();
-        return { saved: true, message: "Post saved successfully" };
-      } else {
-        return { saved: true, message: "Post already saved" };
-      }
-    } else {
-      if (existing) {
-        await existing.destroy();
-        await post.decrement("saveCount", { by: 1 });
-        await post.reload();
-        return { saved: false, message: "Post unsave successfully" };
-      } else {
-        return { saved: false, message: "Post already unsaved" };
-      }
-    }
+    return this.#togglePostAssociation({
+      userId,
+      postId,
+      isSet: isSave,
+      associationModel: PostSave,
+      counterColumn: "saveCount",
+      successMessages: {
+        added: Messages.POST_SAVED,
+        removed: Messages.POST_UNSAVED,
+      },
+      errorMessages: {
+        alreadyAdded: Messages.ALREADY_SAVED,
+        notFound: Messages.OPERATION_SUCCESS,
+      },
+    });
   }
+
   async togglePostArchive({ userId, postId, isArchive }) {
-    const existing = await PostArchive.findOne({ where: { userId, postId } });
-    const post = await Post.findOne({ where: { id: postId } });
-
-    if (!post) {
-      throw new Error("Post not found");
-    }
-
-    if (isArchive) {
-      if (!existing) {
-        await PostArchive.create({ userId, postId });
-        return { saved: true, message: "Post archived successfully" };
-      } else {
-        return { saved: true, message: "Post already archived" };
-      }
-    } else {
-      if (existing) {
-        await existing.destroy();
-        return { saved: false, message: "Post archived successfully" };
-      } else {
-        return { saved: false, message: "Post already archived" };
-      }
-    }
+    return this.#togglePostAssociation({
+      userId,
+      postId,
+      isSet: isArchive,
+      associationModel: PostArchive,
+      successMessages: {
+        added: Messages.POST_ARCHIVED,
+        removed: Messages.POST_UNARCHIVED,
+      },
+      errorMessages: {
+        alreadyAdded: Messages.ALREADY_ARCHIVED,
+        notFound: Messages.OPERATION_SUCCESS,
+      },
+    });
   }
 }
 

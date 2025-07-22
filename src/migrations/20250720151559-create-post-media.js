@@ -25,6 +25,9 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false,
       },
+      thumbnail: {
+        type: Sequelize.STRING,
+      },
       mediaType: {
         type: Sequelize.ENUM,
         values: Object.values(POST_TYPE),
