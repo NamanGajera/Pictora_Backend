@@ -93,14 +93,21 @@ class PostService {
 
   async getAllPosts(data) {
     try {
-      const { userId, filterUserId } = data;
+      const { userId, filterUserId, skip = 0, take = 10 } = data;
 
       const filterData = {};
       if (filterUserId) {
         filterData.userId = filterUserId;
       }
-      const posts = await postRepository.getAllPost(userId, filterData);
-      return posts;
+      const { posts, total } = await postRepository.getAllPosts(
+        userId,
+        filterData,
+        { skip: parseInt(skip), take: parseInt(take) }
+      );
+      return {
+        posts,
+        total,
+      };
     } catch (error) {
       console.log("Get All post -->", error);
       throw new AppError(
@@ -246,9 +253,15 @@ class PostService {
 
   async getLikedPosts(data) {
     try {
-      const { userId } = data;
-      const posts = await postRepository.getLikedPostsByUser(userId);
-      return posts;
+      const { userId, skip = 0, take = 10 } = data;
+      const { posts, total } = await postRepository.getLikedPostsByUser(
+        userId,
+        { skip: parseInt(skip), take: parseInt(take) }
+      );
+      return {
+        posts,
+        total,
+      };
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
@@ -268,9 +281,15 @@ class PostService {
   }
   async getSavedPosts(data) {
     try {
-      const { userId } = data;
-      const posts = await postRepository.getLikedPostsByUser(userId);
-      return posts;
+      const { userId, skip = 0, take = 10 } = data;
+      const { posts, total } = await postRepository.getSavedPostsByUser(
+        userId,
+        { skip: parseInt(skip), take: parseInt(take) }
+      );
+      return {
+        posts,
+        total,
+      };
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
@@ -290,9 +309,15 @@ class PostService {
   }
   async getArchivedPosts(data) {
     try {
-      const { userId } = data;
-      const posts = await postRepository.getArchivedPostsByUser(userId);
-      return posts;
+      const { userId, skip = 0, take = 10 } = data;
+      const { posts, total } = await postRepository.getArchivedPostsByUser(
+        userId,
+        { skip: parseInt(skip), take: parseInt(take) }
+      );
+      return {
+        posts,
+        total,
+      };
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
@@ -312,10 +337,14 @@ class PostService {
   }
   async getAllUserWhoLikePost(data) {
     try {
-      const { postId } = data;
-      const posts = await postRepository.getAllUserWhoLikePost(postId);
-      return posts;
+      const { postId, skip = 0, take = 10 } = data;
+      const { users, total } = await postRepository.getAllUsersWhoLikePost(
+        postId,
+        { skip: parseInt(skip), take: parseInt(take) }
+      );
+      return { users, total };
     } catch (error) {
+      console.log("Error-->> ", error);
       if (error instanceof AppError) {
         throw error;
       }

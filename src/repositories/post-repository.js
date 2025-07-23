@@ -78,9 +78,24 @@ class PostRepository extends CrudRepository {
     };
   }
 
-  async getAllPost(userId, filter) {
+  async getAllPosts(userId, filter, { skip = 0, take = 10 } = {}) {
     const baseQuery = this.#buildBasePostQuery(userId);
 
+    const total = await Post.count({
+      where: {
+        ...filter,
+        [Sequelize.Op.and]: [
+          Sequelize.literal(`
+          NOT EXISTS (
+            SELECT 1
+            FROM PostArchives
+            WHERE PostArchives.postId = Post.id
+            AND PostArchives.userId = ${sequelize.escape(userId)}
+          )
+        `),
+        ],
+      },
+    });
     const posts = await Post.findAll({
       ...baseQuery,
       where: {
@@ -96,9 +111,15 @@ class PostRepository extends CrudRepository {
           `),
         ],
       },
+      offset: skip,
+      limit: take,
+      order: [["createdAt", "DESC"]],
     });
 
-    return this.#formatPostResponse(posts);
+    return {
+      posts: this.#formatPostResponse(posts),
+      total,
+    };
   }
 
   async getSinglePost(userId, postId) {
@@ -116,8 +137,24 @@ class PostRepository extends CrudRepository {
     return this.#formatPostResponse(post);
   }
 
-  async #getPostsByAssociation(userId, associationModel, associationName) {
+  async #getPostsByAssociation(
+    userId,
+    associationModel,
+    associationName,
+    { skip = 0, take = 10 } = {}
+  ) {
     const baseQuery = this.#buildBasePostQuery(userId);
+
+    const total = await Post.count({
+      include: [
+        {
+          model: associationModel,
+          where: { userId },
+          attributes: [],
+        },
+      ],
+      where: baseQuery.where,
+    });
 
     const posts = await Post.findAll({
       ...baseQuery,
@@ -129,27 +166,56 @@ class PostRepository extends CrudRepository {
           attributes: [],
         },
       ],
+      offset: skip,
+      limit: take,
+      order: [["createdAt", "DESC"]],
     });
 
-    return this.#formatPostResponse(posts);
+    return {
+      posts: this.#formatPostResponse(posts),
+      total,
+    };
   }
 
-  async getLikedPostsByUser(userId) {
-    return this.#getPostsByAssociation(userId, PostLike, "PostLikes");
+  async getLikedPostsByUser(userId, { skip = 0, take = 10 } = {}) {
+    return this.#getPostsByAssociation(userId, PostLike, "PostLikes", {
+      skip,
+      take,
+    });
   }
 
-  async getSavedPostsByUser(userId) {
-    return this.#getPostsByAssociation(userId, PostSave, "PostSaves");
+  async getSavedPostsByUser(userId, { skip = 0, take = 10 } = {}) {
+    return this.#getPostsByAssociation(userId, PostSave, "PostSaves", {
+      skip,
+      take,
+    });
   }
-  async getArchivedPostsByUser(userId) {
-    return this.#getPostsByAssociation(userId, PostArchive, "PostArchives");
+
+  async getArchivedPostsByUser(userId, { skip = 0, take = 10 } = {}) {
+    return this.#getPostsByAssociation(userId, PostArchive, "PostArchives", {
+      skip,
+      take,
+    });
   }
-  async getAllUserWhoLikePost(postId) {
+
+  async getAllUsersWhoLikePost(postId, { skip = 0, take = 10 } = {}) {
     try {
       const post = await Post.findByPk(postId);
       if (!post) {
         throw new AppError(Messages.POST_NOT_FOUND, STATUS_CODE.NOT_FOUND);
       }
+
+      const total = await User.count({
+        include: [
+          {
+            model: PostLike,
+            where: { postId },
+            attributes: [],
+            required: true,
+            as: "likedPost",
+          },
+        ],
+      });
       const users = await User.findAll({
         include: [
           {
@@ -157,12 +223,19 @@ class PostRepository extends CrudRepository {
             where: { postId },
             attributes: [],
             required: true,
+            as: "likedPost",
           },
         ],
-        attributes: ["id", "username", "profilePicture"],
+        attributes: ["id", "username", "fullName"],
+        offset: skip,
+        limit: take,
+        order: [["username", "ASC"]],
       });
 
-      return users;
+      return {
+        users,
+        total,
+      };
     } catch (error) {
       console.error("Error in getAllUsersWhoLikedPost:", error);
       throw error;

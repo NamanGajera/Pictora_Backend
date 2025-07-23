@@ -55,10 +55,16 @@ class PostController {
     try {
       const response = await PostService.getAllPosts({
         userId: req.user.id,
-        filterUserId: req.query.userId,
+        filterUserId: req.body.userId,
+        skip: req.body.skip,
+        take: req.body.take,
       });
-      SuccessResponse.data = response;
-      return res.status(STATUS_CODE.OK).json(SuccessResponse);
+      SuccessResponse.data = response.posts;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      const totalData = response.total;
+      return res
+        .status(STATUS_CODE.OK)
+        .json({ ...SuccessResponse, total: totalData });
     } catch (error) {
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
@@ -71,10 +77,15 @@ class PostController {
     try {
       const response = await PostService.getLikedPosts({
         userId: req.user.id,
+        skip: req.body.skip,
+        take: req.body.take,
       });
-      SuccessResponse.data = response;
+      SuccessResponse.data = response.posts;
       SuccessResponse.message = Messages.FETCHED_SUCCESS;
-      return res.status(STATUS_CODE.OK).json(SuccessResponse);
+      const totalData = response.total;
+      return res
+        .status(STATUS_CODE.OK)
+        .json({ ...SuccessResponse, total: totalData });
     } catch (error) {
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
@@ -87,10 +98,15 @@ class PostController {
     try {
       const response = await PostService.getSavedPosts({
         userId: req.user.id,
+        skip: req.body.skip,
+        take: req.body.take,
       });
-      SuccessResponse.data = response;
+      SuccessResponse.data = response.posts;
       SuccessResponse.message = Messages.FETCHED_SUCCESS;
-      return res.status(STATUS_CODE.OK).json(SuccessResponse);
+      const totalData = response.total;
+      return res
+        .status(STATUS_CODE.OK)
+        .json({ ...SuccessResponse, total: totalData });
     } catch (error) {
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
@@ -103,10 +119,15 @@ class PostController {
     try {
       const response = await PostService.getArchivedPosts({
         userId: req.user.id,
+        skip: req.body.skip,
+        take: req.body.take,
       });
-      SuccessResponse.data = response;
+      SuccessResponse.data = response.posts;
       SuccessResponse.message = Messages.FETCHED_SUCCESS;
-      return res.status(STATUS_CODE.OK).json(SuccessResponse);
+      const totalData = response.total;
+      return res
+        .status(STATUS_CODE.OK)
+        .json({ ...SuccessResponse, total: totalData });
     } catch (error) {
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
@@ -169,6 +190,26 @@ class PostController {
       return res
         .status(STATUS_CODE.OK)
         .json({ statusCode: STATUS_CODE.OK, message: Messages.POST_DELETE });
+    } catch (error) {
+      ErrorResponse.message = error.message;
+      return res
+        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .json(ErrorResponse);
+    }
+  }
+  async getAllUserWhoLikePost(req, res) {
+    try {
+      const response = await PostService.getAllUserWhoLikePost({
+        postId: req.params.postId,
+        skip: req.body.skip,
+        take: req.body.take,
+      });
+      SuccessResponse.data = response.users;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      const totalData = response.total;
+      return res
+        .status(STATUS_CODE.OK)
+        .json({ ...SuccessResponse, total: totalData });
     } catch (error) {
       ErrorResponse.message = error.message;
       return res
