@@ -1,11 +1,5 @@
 const db = require("../models");
-const {
-  PostRepository,
-  PostLikeRepository,
-  PostSaveRepository,
-  PostArchiveRepository,
-  PostMediaRepository,
-} = require("../repositories");
+const { PostRepository, PostMediaRepository } = require("../repositories");
 const { Messages, Enums } = require("../utils/common");
 const { BaseError } = require("sequelize");
 const AppError = require("../utils/errors/app-error");
@@ -14,9 +8,6 @@ const { getFileType } = require("../utils/helpers/getFileType");
 
 const { STATUS_CODE, POST_TYPE } = Enums;
 const postRepository = new PostRepository();
-const postLikeRepository = new PostLikeRepository();
-const postSaveRepository = new PostSaveRepository();
-const postArchiveRepository = new PostArchiveRepository();
 const postMediaRepository = new PostMediaRepository();
 
 class PostService {

@@ -29,6 +29,17 @@ module.exports = (sequelize, DataTypes) => {
         onDelete: "CASCADE",
         as: "archivedPost",
       });
+      User.hasMany(models.Comment, {
+        foreignKey: "userId",
+        as: "comments",
+        onDelete: "CASCADE",
+      });
+
+      User.hasMany(models.CommentLike, {
+        foreignKey: "userId",
+        as: "commentLikes",
+        onDelete: "CASCADE",
+      });
     }
   }
 

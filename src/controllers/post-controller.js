@@ -27,10 +27,11 @@ class PostController {
       SuccessResponse.message = Messages.POST_CREATED;
       return res.status(STATUS_CODE.OK).json(SuccessResponse);
     } catch (error) {
-      console.error("CreatePost Error:", error);
+      ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
-        .json({ error: error.message });
+        .json(ErrorResponse);
     }
   }
 
@@ -43,11 +44,11 @@ class PostController {
       SuccessResponse.data = response;
       return res.status(STATUS_CODE.OK).json(SuccessResponse);
     } catch (error) {
+      ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
-        .json({
-          error: error.message,
-        });
+        .json(ErrorResponse);
     }
   }
 
@@ -66,11 +67,11 @@ class PostController {
         .status(STATUS_CODE.OK)
         .json({ ...SuccessResponse, total: totalData });
     } catch (error) {
+      ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
-        .json({
-          error: error.message,
-        });
+        .json(ErrorResponse);
     }
   }
   async getLikedPosts(req, res) {
@@ -87,11 +88,11 @@ class PostController {
         .status(STATUS_CODE.OK)
         .json({ ...SuccessResponse, total: totalData });
     } catch (error) {
+      ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
-        .json({
-          error: error.message,
-        });
+        .json(ErrorResponse);
     }
   }
   async getSavedPosts(req, res) {
@@ -108,11 +109,11 @@ class PostController {
         .status(STATUS_CODE.OK)
         .json({ ...SuccessResponse, total: totalData });
     } catch (error) {
+      ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
-        .json({
-          error: error.message,
-        });
+        .json(ErrorResponse);
     }
   }
   async getArchivedPosts(req, res) {
@@ -129,11 +130,11 @@ class PostController {
         .status(STATUS_CODE.OK)
         .json({ ...SuccessResponse, total: totalData });
     } catch (error) {
+      ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
-        .json({
-          error: error.message,
-        });
+        .json(ErrorResponse);
     }
   }
   async togglePostLike(req, res) {
@@ -146,6 +147,7 @@ class PostController {
       return res.status(STATUS_CODE.OK).json(response);
     } catch (error) {
       ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
         .json(ErrorResponse);
@@ -162,6 +164,7 @@ class PostController {
       return res.status(STATUS_CODE.OK).json(response);
     } catch (error) {
       ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
         .json(ErrorResponse);
@@ -177,6 +180,7 @@ class PostController {
       return res.status(STATUS_CODE.OK).json(response);
     } catch (error) {
       ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
         .json(ErrorResponse);
@@ -192,6 +196,7 @@ class PostController {
         .json({ statusCode: STATUS_CODE.OK, message: Messages.POST_DELETE });
     } catch (error) {
       ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
         .json(ErrorResponse);
@@ -212,6 +217,7 @@ class PostController {
         .json({ ...SuccessResponse, total: totalData });
     } catch (error) {
       ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
       return res
         .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
         .json(ErrorResponse);

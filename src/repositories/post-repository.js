@@ -7,7 +7,7 @@ const {
   User,
   sequelize,
 } = require("../models");
-const { Sequelize, where } = require("sequelize");
+const { Sequelize } = require("sequelize");
 const { Enums, Messages } = require("../utils/common");
 const CrudRepository = require("./crud-repository");
 const AppError = require("../utils/errors/app-error");

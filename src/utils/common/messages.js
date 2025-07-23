@@ -111,6 +111,14 @@ const Messages = {
   // Transaction Related
   TRANSACTION_FAILED: "Transaction failed",
   TRANSACTION_SUCCESS: "Transaction completed successfully",
+
+  /// Comment Related
+  COMMENT_CREATED: "Comment created successfully",
+  COMMENT_DELETED: "Comment deleted successfully",
+  COMMENT_NOT_FOUND: "Comment not found",
+  COMMENT_LIKED: "Comment liked successfully",
+  COMMENT_UNLIKED: "Comment unliked successfully",
+  COMMENT_ALREADY_LIKED: "Comment already like",
 };
 
 module.exports = Messages;
