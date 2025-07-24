@@ -81,22 +81,7 @@ class PostRepository extends CrudRepository {
   async getAllPosts(userId, filter, { skip = 0, take = 10 } = {}) {
     const baseQuery = this.#buildBasePostQuery(userId);
 
-    const total = await Post.count({
-      where: {
-        ...filter,
-        [Sequelize.Op.and]: [
-          Sequelize.literal(`
-          NOT EXISTS (
-            SELECT 1
-            FROM PostArchives
-            WHERE PostArchives.postId = Post.id
-            AND PostArchives.userId = ${sequelize.escape(userId)}
-          )
-        `),
-        ],
-      },
-    });
-    const posts = await Post.findAll({
+    const { count, rows: posts } = await Post.findAndCountAll({
       ...baseQuery,
       where: {
         ...filter,
@@ -118,7 +103,7 @@ class PostRepository extends CrudRepository {
 
     return {
       posts: this.#formatPostResponse(posts),
-      total,
+      total: count,
     };
   }
 
@@ -145,18 +130,7 @@ class PostRepository extends CrudRepository {
   ) {
     const baseQuery = this.#buildBasePostQuery(userId);
 
-    const total = await Post.count({
-      include: [
-        {
-          model: associationModel,
-          where: { userId },
-          attributes: [],
-        },
-      ],
-      where: baseQuery.where,
-    });
-
-    const posts = await Post.findAll({
+    const { count, rows: posts } = await Post.findAndCountAll({
       ...baseQuery,
       include: [
         ...baseQuery.include,
@@ -173,7 +147,7 @@ class PostRepository extends CrudRepository {
 
     return {
       posts: this.#formatPostResponse(posts),
-      total,
+      total: count,
     };
   }
 
@@ -205,18 +179,7 @@ class PostRepository extends CrudRepository {
         throw new AppError(Messages.POST_NOT_FOUND, STATUS_CODE.NOT_FOUND);
       }
 
-      const total = await User.count({
-        include: [
-          {
-            model: PostLike,
-            where: { postId },
-            attributes: [],
-            required: true,
-            as: "likedPost",
-          },
-        ],
-      });
-      const users = await User.findAll({
+      const { count, rows: users } = await User.findAndCountAll({
         include: [
           {
             model: PostLike,
@@ -234,7 +197,7 @@ class PostRepository extends CrudRepository {
 
       return {
         users,
-        total,
+        total: count,
       };
     } catch (error) {
       console.error("Error in getAllUsersWhoLikedPost:", error);

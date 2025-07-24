@@ -119,6 +119,16 @@ const Messages = {
   COMMENT_LIKED: "Comment liked successfully",
   COMMENT_UNLIKED: "Comment unliked successfully",
   COMMENT_ALREADY_LIKED: "Comment already like",
+  COMMENT_NOT_PINNED: "Comment not pinned",
+  COMMENT_ALREADY_PINNED: "Comment already pinned",
+
+  /// Follow/Unfollow
+  ALREADY_FOLLOW: "You are already following this user",
+  FOLLOW_REQUEST_PENDING: "Follow request already pending",
+  FOLLOW_REQUEST_SENT: "Follow request sent successfully",
+  USER_FOLLOWED: "User followed successfully",
+  USER_UNFOLLOWED: "User unfollowed successfully",
+  NOT_FOLLOWING_USER: "You are not following this user",
 };
 
 module.exports = Messages;

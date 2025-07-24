@@ -48,6 +48,93 @@ class CommentController {
         .json(ErrorResponse);
     }
   }
+
+  async getPostComments(req, res) {
+    try {
+      const response = await CommentService.getPostComments({
+        userId: req.user.id,
+        postId: req.body.postId,
+        skip: req.body.skip,
+        take: req.body.take,
+      });
+      SuccessResponse.data = response.comments;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      const totalData = response.total;
+      return res
+        .status(STATUS_CODE.OK)
+        .json({ ...SuccessResponse, total: totalData });
+    } catch (error) {
+      ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
+      return res
+        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .json(ErrorResponse);
+    }
+  }
+  async getCommentReplies(req, res) {
+    try {
+      const response = await CommentService.getCommentReplies({
+        userId: req.user.id,
+        commentId: req.body.commentId,
+        skip: req.body.skip,
+        take: req.body.take,
+      });
+      SuccessResponse.data = response.replies;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      const totalData = response.total;
+      return res
+        .status(STATUS_CODE.OK)
+        .json({ ...SuccessResponse, total: totalData });
+    } catch (error) {
+      ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
+      return res
+        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .json(ErrorResponse);
+    }
+  }
+
+  async deleteComment(req, res) {
+    try {
+      await CommentService.deleteComment({ commentId: req.params.commentId });
+
+      return res
+        .status(STATUS_CODE.OK)
+        .json({ message: Messages.COMMENT_DELETED });
+    } catch (error) {
+      ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
+      return res
+        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .json(ErrorResponse);
+    }
+  }
+
+  async togglePinComment(req, res) {
+    try {
+      const { commentId } = req.params;
+      const userId = req.user.id;
+      const { shouldPin } = req.body;
+
+      const comment = await CommentService.togglePinComment({
+        commentId,
+        userId,
+        shouldPin,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: `Comment ${shouldPin ? "pinned" : "unpinned"} successfully`,
+        data: comment,
+      });
+    } catch (error) {
+      ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
+      return res
+        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .json(ErrorResponse);
+    }
+  }
 }
 
 module.exports = new CommentController();

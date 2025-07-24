@@ -40,6 +40,28 @@ module.exports = (sequelize, DataTypes) => {
         as: "commentLikes",
         onDelete: "CASCADE",
       });
+      User.belongsToMany(models.User, {
+        through: models.Follow,
+        foreignKey: "followingId",
+        as: "followers",
+      });
+      User.belongsToMany(models.User, {
+        through: models.Follow,
+        foreignKey: "followerId",
+        as: "following",
+      });
+      User.hasMany(models.FollowRequest, {
+        foreignKey: "requesterId",
+        as: "sentFollowRequests",
+      });
+      User.hasMany(models.FollowRequest, {
+        foreignKey: "targetId",
+        as: "receivedFollowRequests",
+      });
+      User.hasOne(models.UserCount, {
+        foreignKey: "userId",
+        as: "counts",
+      });
     }
   }
 
@@ -72,6 +94,18 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: "User",
       tableName: "Users",
+      hooks: {
+        afterCreate: async (user, options) => {
+          await user.createCounts(
+            {
+              followerCount: 0,
+              followingCount: 0,
+              postCount: 0,
+            },
+            { transaction: options.transaction }
+          );
+        },
+      },
     }
   );
 

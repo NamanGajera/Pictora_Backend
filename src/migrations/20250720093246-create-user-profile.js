@@ -42,7 +42,11 @@ module.exports = {
         type: Sequelize.STRING(100),
         allowNull: true,
       },
-
+      isPrivate: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,

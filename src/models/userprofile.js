@@ -39,6 +39,11 @@ module.exports = (sequelize, DataTypes) => {
       profilePicture: {
         type: DataTypes.STRING,
       },
+      isPrivate: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
+      },
       location: {
         type: DataTypes.STRING,
       },

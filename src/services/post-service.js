@@ -11,6 +11,21 @@ const postRepository = new PostRepository();
 const postMediaRepository = new PostMediaRepository();
 
 class PostService {
+  #handleError(error) {
+    console.log("Error -->", error);
+    if (error instanceof AppError) {
+      throw error;
+    }
+    if (error instanceof BaseError) {
+      const message =
+        error.errors?.[0]?.message || error.message || Messages.SOMETHING_WRONG;
+      throw new AppError(message, STATUS_CODE.BAD_REQUEST);
+    }
+    throw new AppError(
+      Messages.SOMETHING_WRONG,
+      STATUS_CODE.INTERNAL_SERVER_ERROR
+    );
+  }
   async createPost(data) {
     const transaction = await db.sequelize.transaction();
 
@@ -64,21 +79,7 @@ class PostService {
       };
     } catch (error) {
       await transaction.rollback();
-      console.log("Create Post Error -> ", error);
-      if (error instanceof AppError) {
-        throw error;
-      }
-      if (error instanceof BaseError) {
-        const message =
-          error.errors?.[0]?.message ||
-          error.message ||
-          Messages.SOMETHING_WRONG;
-        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
-      }
-      throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
-      );
+      this.#handleError(error);
     }
   }
 
@@ -95,16 +96,13 @@ class PostService {
         filterData,
         { skip: parseInt(skip), take: parseInt(take) }
       );
+      console.log("Total Post-->>>", total);
       return {
         posts,
         total,
       };
     } catch (error) {
-      console.log("Get All post -->", error);
-      throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
-      );
+      this.#handleError(error);
     }
   }
   async getPostById(data) {
@@ -113,20 +111,7 @@ class PostService {
       const posts = await postRepository.getSinglePost(userId, postId);
       return posts;
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
-      if (error instanceof BaseError) {
-        const message =
-          error.errors?.[0]?.message ||
-          error.message ||
-          Messages.SOMETHING_WRONG;
-        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
-      }
-      throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
-      );
+      this.#handleError(error);
     }
   }
 
@@ -141,20 +126,7 @@ class PostService {
       const response = await postRepository.togglePostLike(data);
       return response;
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
-      if (error instanceof BaseError) {
-        const message =
-          error.errors?.[0]?.message ||
-          error.message ||
-          Messages.SOMETHING_WRONG;
-        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
-      }
-      throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
-      );
+      this.#handleError(error);
     }
   }
   async togglePostSave(data) {
@@ -168,20 +140,7 @@ class PostService {
       const response = await postRepository.togglePostSave(data);
       return response;
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
-      if (error instanceof BaseError) {
-        const message =
-          error.errors?.[0]?.message ||
-          error.message ||
-          Messages.SOMETHING_WRONG;
-        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
-      }
-      throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
-      );
+      this.#handleError(error);
     }
   }
   async togglePostArchive(data) {
@@ -196,20 +155,7 @@ class PostService {
       const response = await postRepository.togglePostArchive(data);
       return response;
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
-      if (error instanceof BaseError) {
-        const message =
-          error.errors?.[0]?.message ||
-          error.message ||
-          Messages.SOMETHING_WRONG;
-        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
-      }
-      throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
-      );
+      this.#handleError(error);
     }
   }
 
@@ -225,20 +171,7 @@ class PostService {
       await postRepository.destroy(postId);
       return true;
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
-      if (error instanceof BaseError) {
-        const message =
-          error.errors?.[0]?.message ||
-          error.message ||
-          Messages.SOMETHING_WRONG;
-        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
-      }
-      throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
-      );
+      this.#handleError(error);
     }
   }
 
@@ -254,20 +187,7 @@ class PostService {
         total,
       };
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
-      if (error instanceof BaseError) {
-        const message =
-          error.errors?.[0]?.message ||
-          error.message ||
-          Messages.SOMETHING_WRONG;
-        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
-      }
-      throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
-      );
+      this.#handleError(error);
     }
   }
   async getSavedPosts(data) {
@@ -282,20 +202,7 @@ class PostService {
         total,
       };
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
-      if (error instanceof BaseError) {
-        const message =
-          error.errors?.[0]?.message ||
-          error.message ||
-          Messages.SOMETHING_WRONG;
-        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
-      }
-      throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
-      );
+      this.#handleError(error);
     }
   }
   async getArchivedPosts(data) {
@@ -310,20 +217,7 @@ class PostService {
         total,
       };
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
-      if (error instanceof BaseError) {
-        const message =
-          error.errors?.[0]?.message ||
-          error.message ||
-          Messages.SOMETHING_WRONG;
-        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
-      }
-      throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
-      );
+      this.#handleError(error);
     }
   }
   async getAllUserWhoLikePost(data) {
@@ -336,20 +230,7 @@ class PostService {
       return { users, total };
     } catch (error) {
       console.log("Error-->> ", error);
-      if (error instanceof AppError) {
-        throw error;
-      }
-      if (error instanceof BaseError) {
-        const message =
-          error.errors?.[0]?.message ||
-          error.message ||
-          Messages.SOMETHING_WRONG;
-        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
-      }
-      throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
-      );
+      this.#handleError(error);
     }
   }
 }
