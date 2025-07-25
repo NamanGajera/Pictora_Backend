@@ -11,6 +11,21 @@ const userRepository = new UserRepository();
 const userProfileRepository = new UserProfileRepository();
 
 class UserService {
+  #handleError(error) {
+    console.log("Error -->", error);
+    if (error instanceof AppError) {
+      throw error;
+    }
+    if (error instanceof BaseError) {
+      const message =
+        error.errors?.[0]?.message || error.message || Messages.SOMETHING_WRONG;
+      throw new AppError(message, STATUS_CODE.BAD_REQUEST);
+    }
+    throw new AppError(
+      Messages.SOMETHING_WRONG,
+      STATUS_CODE.INTERNAL_SERVER_ERROR
+    );
+  }
   async login(data) {
     try {
       const user = await userRepository.findOne({ email: data.email });
@@ -27,23 +42,7 @@ class UserService {
       const token = generateToken(user.id);
       return { token, user };
     } catch (error) {
-      console.log("Login Error -->>", error);
-      if (error instanceof AppError) {
-        throw error;
-      }
-
-      if (error instanceof BaseError) {
-        const message =
-          error.errors?.[0]?.message ||
-          error.message ||
-          Messages.SOMETHING_WRONG;
-        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
-      }
-
-      throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
-      );
+      this.#handleError(error);
     }
   }
   async userRegister(data) {
@@ -76,18 +75,85 @@ class UserService {
       return { token, user };
     } catch (error) {
       await transaction.rollback();
-      console.log("REGISTER USER ERROR -->>>>\n", error);
-      if (error instanceof BaseError) {
-        const message =
-          error.errors?.[0]?.message ||
-          error.message ||
-          Messages.SOMETHING_WRONG;
-        throw new AppError(message, STATUS_CODE.BAD_REQUEST);
-      }
-      throw new AppError(
-        Messages.SOMETHING_WRONG,
-        STATUS_CODE.INTERNAL_SERVER_ERROR
+      this.#handleError(error);
+    }
+  }
+
+  async toggleFollow(data) {
+    const transaction = await db.sequelize.transaction();
+    console.log("Usr Data--->", data);
+    try {
+      const response = await userRepository.toggleFollow(data, transaction);
+      await transaction.commit();
+      return response;
+    } catch (error) {
+      await transaction.rollback();
+      this.#handleError(error);
+    }
+  }
+
+  async getUserData(userId, currentUserId) {
+    try {
+      const user = await userRepository.getUserProfileData(
+        userId,
+        currentUserId
       );
+      return user;
+    } catch (error) {
+      this.#handleError(error);
+    }
+  }
+
+  async getAllFollowRequests(userId) {
+    try {
+      const users = await userRepository.getAllFollowRequests(userId);
+      return users;
+    } catch (error) {
+      this.#handleError(error);
+    }
+  }
+
+  async manageFollowRequest(data) {
+    const transaction = await db.sequelize.transaction();
+    console.log("Usr Data--->", data);
+    try {
+      const response = await userRepository.manageFollowRequest(
+        data,
+        transaction
+      );
+      await transaction.commit();
+      return response;
+    } catch (error) {
+      await transaction.rollback();
+      this.#handleError(error);
+    }
+  }
+  async getAllFollowers(data) {
+    const { userId, currentUserId, skip = 0, take = 10 } = data;
+    console.log("Usr Data--->", { userId, currentUserId });
+    try {
+      const response = await userRepository.getAllFollowers(
+        userId,
+        currentUserId,
+        { skip: parseInt(skip), take: parseInt(take) }
+      );
+      return response;
+    } catch (error) {
+      this.#handleError(error);
+    }
+  }
+  async getAllFollowingUsers(data) {
+    const { userId, currentUserId, skip = 0, take = 10 } = data;
+    console.log("Usr Data--->", { userId, currentUserId });
+    try {
+      const response = await userRepository.getAllFollowingUser(
+        userId,
+        currentUserId,
+        { skip: parseInt(skip), take: parseInt(take) }
+      );
+      return response;
+    } catch (error) {
+      this.#handleError(error);
     }
   }
 }

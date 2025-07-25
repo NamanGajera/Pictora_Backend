@@ -17,7 +17,7 @@ class UserController {
       res.status(STATUS_CODE.OK).json(SuccessResponse);
     } catch (error) {
       const status = error.statusCode || 500;
-      const message = error.message || "Internal Server Error";
+      const message = error.message || Messages.SERVER_ERROR;
 
       ErrorResponse.message = message;
       ErrorResponse.statusCode = status;
@@ -39,7 +39,124 @@ class UserController {
       res.status(STATUS_CODE.OK).json(SuccessResponse);
     } catch (error) {
       const status = error.statusCode || 500;
-      const message = error.message || "Internal Server Error";
+      const message = error.message || Messages.SERVER_ERROR;
+
+      ErrorResponse.message = message;
+      ErrorResponse.statusCode = status;
+
+      return res.status(status).json(ErrorResponse);
+    }
+  }
+  async toggleFollow(req, res) {
+    try {
+      const response = await UserService.toggleFollow({
+        followerId: req.user.id,
+        followingId: req.body.userId,
+        shouldFollow: req.body.shouldFollow,
+      });
+      res.status(STATUS_CODE.OK).json(response);
+    } catch (error) {
+      const status = error.statusCode || 500;
+      const message = error.message || Messages.SERVER_ERROR;
+
+      ErrorResponse.message = message;
+      ErrorResponse.statusCode = status;
+
+      return res.status(status).json(ErrorResponse);
+    }
+  }
+
+  async getUserData(req, res) {
+    const userId = req.params.userId || req.user.id;
+    try {
+      const user = await UserService.getUserData(userId, req.user.id);
+      SuccessResponse.data = user;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      res.status(STATUS_CODE.OK).json(SuccessResponse);
+    } catch (error) {
+      const status = error.statusCode || 500;
+      const message = error.message || Messages.SERVER_ERROR;
+
+      ErrorResponse.message = message;
+      ErrorResponse.statusCode = status;
+
+      return res.status(status).json(ErrorResponse);
+    }
+  }
+
+  async getAllFollowRequests(req, res) {
+    try {
+      const users = await UserService.getAllFollowRequests(req.user.id);
+      SuccessResponse.data = users;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      res.status(STATUS_CODE.OK).json(SuccessResponse);
+    } catch (error) {
+      const status = error.statusCode || 500;
+      const message = error.message || Messages.SERVER_ERROR;
+
+      ErrorResponse.message = message;
+      ErrorResponse.statusCode = status;
+
+      return res.status(status).json(ErrorResponse);
+    }
+  }
+
+  async manageFollowRequest(req, res) {
+    try {
+      const response = await UserService.manageFollowRequest({
+        requestId: req.body.id,
+        isAccept: req.body.isAccept,
+        targetUserId: req.user.id,
+      });
+
+      res.status(STATUS_CODE.OK).json(response);
+    } catch (error) {
+      const status = error.statusCode || 500;
+      const message = error.message || Messages.SERVER_ERROR;
+
+      ErrorResponse.message = message;
+      ErrorResponse.statusCode = status;
+
+      return res.status(status).json(ErrorResponse);
+    }
+  }
+  async getAllFollowers(req, res) {
+    const userId = req.body.userId || req.user.id;
+    try {
+      const users = await UserService.getAllFollowers({
+        userId,
+        currentUserId: req.user.id,
+        skip: req.body.skip,
+        take: req.body.take,
+      });
+      SuccessResponse.data = users;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      res.status(STATUS_CODE.OK).json(SuccessResponse);
+    } catch (error) {
+      const status = error.statusCode || 500;
+      const message = error.message || Messages.SERVER_ERROR;
+
+      ErrorResponse.message = message;
+      ErrorResponse.statusCode = status;
+
+      return res.status(status).json(ErrorResponse);
+    }
+  }
+  async getAllFollowingUsers(req, res) {
+    const userId = req.body.userId || req.user.id;
+    try {
+      const users = await UserService.getAllFollowingUsers({
+        userId,
+        currentUserId: req.user.id,
+        skip: req.body.skip,
+        take: req.body.take,
+      });
+      SuccessResponse.data = users;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      res.status(STATUS_CODE.OK).json(SuccessResponse);
+    } catch (error) {
+      const status = error.statusCode || 500;
+      const message = error.message || Messages.SERVER_ERROR;
 
       ErrorResponse.message = message;
       ErrorResponse.statusCode = status;

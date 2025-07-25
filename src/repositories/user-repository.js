@@ -1,7 +1,15 @@
-const { User, UserCount, Follow, FollowRequest } = require("../models");
+const {
+  User,
+  UserProfile,
+  UserCount,
+  Follow,
+  FollowRequest,
+  sequelize,
+} = require("../models");
 const CrudRepository = require("./crud-repository");
 const AppError = require("../utils/errors/app-error");
 const { Enums, Messages } = require("../utils/common");
+const { Sequelize, where } = require("sequelize");
 
 const { STATUS_CODE, FOLLOW_REQUEST_STATUS } = Enums;
 class UserRepository extends CrudRepository {
@@ -113,6 +121,302 @@ class UserRepository extends CrudRepository {
 
       return { message: Messages.USER_UNFOLLOWED };
     }
+  }
+
+  async getUserProfileData(userId, currentUserId) {
+    const user = await User.findOne({
+      where: { id: userId },
+      include: [
+        {
+          model: UserProfile,
+          as: "profile",
+        },
+        {
+          model: UserCount,
+          as: "counts",
+          attributes: ["followerCount", "followingCount", "postCount"],
+        },
+      ],
+    });
+
+    if (!user) {
+      throw new AppError(Messages.USER_NOT_FOUND, STATUS_CODE.NOT_FOUND);
+    }
+
+    let isFollowed = false;
+    let followRequestStatus = null;
+
+    if (userId !== currentUserId) {
+      const follow = await Follow.findOne({
+        where: { followerId: currentUserId, followingId: userId },
+      });
+
+      if (follow) {
+        isFollowed = true;
+      } else {
+        const request = await FollowRequest.findOne({
+          where: {
+            requesterId: currentUserId,
+            targetId: userId,
+          },
+          order: [["createdAt", "DESC"]],
+        });
+
+        if (request) {
+          followRequestStatus = request.status;
+        }
+      }
+    }
+    const responseData = {
+      ...user.toJSON(),
+    };
+
+    if (userId !== currentUserId) {
+      responseData.isFollowed = isFollowed;
+      responseData.followRequestStatus = followRequestStatus;
+    }
+
+    return responseData;
+  }
+
+  async getAllFollowRequests(userId) {
+    const requests = await FollowRequest.findAll({
+      where: {
+        targetId: userId,
+        status: FOLLOW_REQUEST_STATUS.PENDING,
+      },
+      include: [
+        {
+          model: User,
+          as: "requester",
+          attributes: ["id", "fullName", "userName"],
+          include: [
+            {
+              model: UserProfile,
+              as: "profile",
+              attributes: ["profilePicture", "bio", "gender"],
+            },
+          ],
+        },
+      ],
+    });
+
+    return requests;
+  }
+
+  async manageFollowRequest(
+    { requestId, isAccept, targetUserId },
+    transaction
+  ) {
+    const request = await FollowRequest.findOne({
+      where: {
+        id: requestId,
+        targetId: targetUserId,
+        status: FOLLOW_REQUEST_STATUS.PENDING,
+      },
+      transaction,
+    });
+
+    if (!request) {
+      throw new AppError(Messages.REQUEST_NOT_FOUND, STATUS_CODE.NOT_FOUND);
+    }
+
+    const { requesterId } = request;
+
+    if (isAccept === true) {
+      await Follow.create(
+        {
+          followerId: requesterId,
+          followingId: targetUserId,
+          isAccepted: true,
+        },
+        { transaction }
+      );
+
+      await Promise.all([
+        UserCount.increment("followerCount", {
+          where: { userId: targetUserId },
+          by: 1,
+          transaction,
+        }),
+        UserCount.increment("followingCount", {
+          where: { userId: requesterId },
+          by: 1,
+          transaction,
+        }),
+      ]);
+
+      await request.destroy({ transaction });
+
+      return { message: Messages.REQUEST_ACCEPTED };
+    }
+
+    if (isAccept === false) {
+      await request.update(
+        { status: FOLLOW_REQUEST_STATUS.REJECTED },
+        { transaction }
+      );
+
+      return { message: Messages.REQUEST_REJECTED };
+    }
+
+    throw new AppError(Messages.SOMETHING_WRONG, STATUS_CODE.BAD_REQUEST);
+  }
+
+  async getAllFollowers(userId, currentUserId, { skip = 0, take = 10 } = {}) {
+    const targetUser = await User.findByPk(userId, {
+      include: { model: UserProfile, as: "profile" },
+    });
+
+    if (!targetUser) {
+      throw new AppError(Messages.USER_NOT_FOUND, STATUS_CODE.NOT_FOUND);
+    }
+
+    const isSelf = userId === currentUserId;
+
+    let isAllowed = isSelf || !targetUser.profile.isPrivate;
+
+    if (!isAllowed) {
+      const isFollowing = await Follow.findOne({
+        where: {
+          followerId: currentUserId,
+          followingId: userId,
+        },
+      });
+
+      if (isFollowing) isAllowed = true;
+    }
+
+    if (!isAllowed) {
+      throw new AppError(Messages.ACCESS_DENIED, STATUS_CODE.FORBIDDEN);
+    }
+
+    const followers = await Follow.findAll({
+      where: { followingId: userId },
+      include: [
+        {
+          model: User,
+          as: "follower",
+          attributes: [
+            "id",
+            "fullName",
+            "userName",
+            [
+              Sequelize.literal(`EXISTS (
+              SELECT 1 FROM Follows AS F
+              WHERE F.followerId = ${sequelize.escape(currentUserId)}
+              AND F.followingId = follower.id
+            )`),
+              "isFollowed",
+            ],
+            [
+              Sequelize.literal(`(
+            SELECT status FROM FollowRequests AS FR
+            WHERE FR.requesterId = ${sequelize.escape(currentUserId)}
+            AND FR.targetId = follower.id
+            LIMIT 1
+          )`),
+              "followRequestStatus",
+            ],
+          ],
+          include: [
+            {
+              model: UserProfile,
+              as: "profile",
+              attributes: ["profilePicture"],
+            },
+          ],
+        },
+      ],
+      offset: skip,
+      limit: take,
+      order: [["createdAt", "DESC"]],
+    });
+    return followers.map((f) => {
+      const follower = f.follower.toJSON();
+      follower.isFollowed = !!follower.isFollowed;
+      return follower;
+    });
+  }
+
+  async getAllFollowingUser(
+    userId,
+    currentUserId,
+    { skip = 0, take = 10 } = {}
+  ) {
+    const targetUser = await User.findByPk(userId, {
+      include: { model: UserProfile, as: "profile" },
+    });
+
+    if (!targetUser) {
+      throw new AppError(Messages.USER_NOT_FOUND, STATUS_CODE.NOT_FOUND);
+    }
+
+    const isSelf = userId === currentUserId;
+
+    let isAllowed = isSelf || !targetUser.profile.isPrivate;
+
+    if (!isAllowed) {
+      const isFollowing = await Follow.findOne({
+        where: {
+          followerId: currentUserId,
+          followingId: userId,
+        },
+      });
+
+      if (isFollowing) isAllowed = true;
+    }
+
+    if (!isAllowed) {
+      throw new AppError(Messages.ACCESS_DENIED, STATUS_CODE.FORBIDDEN);
+    }
+
+    const followingUsers = await Follow.findAll({
+      where: { followerId: userId },
+      include: [
+        {
+          model: User,
+          as: "following",
+          attributes: [
+            "id",
+            "fullName",
+            "userName",
+            [
+              Sequelize.literal(`EXISTS (
+              SELECT 1 FROM Follows AS F
+              WHERE F.followerId = ${sequelize.escape(currentUserId)}
+              AND F.followingId = following.id
+            )`),
+              "isFollowed",
+            ],
+            [
+              Sequelize.literal(`(
+            SELECT status FROM FollowRequests AS FR
+            WHERE FR.requesterId = ${sequelize.escape(currentUserId)}
+            AND FR.targetId = following.id
+            LIMIT 1
+          )`),
+              "followRequestStatus",
+            ],
+          ],
+          include: [
+            {
+              model: UserProfile,
+              as: "profile",
+              attributes: ["profilePicture"],
+            },
+          ],
+        },
+      ],
+      offset: skip,
+      limit: take,
+      order: [["createdAt", "DESC"]],
+    });
+    return followingUsers.map((f) => {
+      const following = f.following.toJSON();
+      following.isFollowed = !!following.isFollowed;
+      return following;
+    });
   }
 }
 

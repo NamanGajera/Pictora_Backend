@@ -129,6 +129,8 @@ const Messages = {
   USER_FOLLOWED: "User followed successfully",
   USER_UNFOLLOWED: "User unfollowed successfully",
   NOT_FOLLOWING_USER: "You are not following this user",
+  REQUEST_ACCEPTED: "Follow request accepted",
+  REQUEST_NOT_FOUND: "Follow request not found",
 };
 
 module.exports = Messages;
