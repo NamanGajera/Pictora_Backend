@@ -145,6 +145,7 @@ class UserRepository extends CrudRepository {
 
     let isFollowed = false;
     let followRequestStatus = null;
+    let showFollowBack = false;
 
     if (userId !== currentUserId) {
       const follow = await Follow.findOne({
@@ -166,6 +167,16 @@ class UserRepository extends CrudRepository {
           followRequestStatus = request.status;
         }
       }
+      const reverseFollow = await Follow.findOne({
+        where: {
+          followerId: userId,
+          followingId: currentUserId,
+        },
+      });
+
+      if (reverseFollow && !isFollowed) {
+        showFollowBack = true;
+      }
     }
     const responseData = {
       ...user.toJSON(),
@@ -174,6 +185,7 @@ class UserRepository extends CrudRepository {
     if (userId !== currentUserId) {
       responseData.isFollowed = isFollowed;
       responseData.followRequestStatus = followRequestStatus;
+      responseData.showFollowBack = showFollowBack;
     }
 
     return responseData;
@@ -310,12 +322,26 @@ class UserRepository extends CrudRepository {
               "isFollowed",
             ],
             [
+              Sequelize.literal(
+                `NOT EXISTS (
+                  SELECT 1 FROM Follows AS F
+                  WHERE F.followerId = ${sequelize.escape(currentUserId)}
+                  AND F.followingId = follower.id
+                ) AND EXISTS (
+                  SELECT 1 FROM Follows AS F2
+                  WHERE F2.followerId = follower.id
+                  AND F2.followingId = ${sequelize.escape(currentUserId)}
+                )`
+              ),
+              "showFollowBack",
+            ],
+            [
               Sequelize.literal(`(
-            SELECT status FROM FollowRequests AS FR
-            WHERE FR.requesterId = ${sequelize.escape(currentUserId)}
-            AND FR.targetId = follower.id
-            LIMIT 1
-          )`),
+                    SELECT status FROM FollowRequests AS FR
+                    WHERE FR.requesterId = ${sequelize.escape(currentUserId)}
+                    AND FR.targetId = follower.id
+                    LIMIT 1
+                  )`),
               "followRequestStatus",
             ],
           ],
@@ -335,6 +361,7 @@ class UserRepository extends CrudRepository {
     return followers.map((f) => {
       const follower = f.follower.toJSON();
       follower.isFollowed = !!follower.isFollowed;
+      follower.showFollowBack = !!follower.showFollowBack;
       return follower;
     });
   }
@@ -390,6 +417,20 @@ class UserRepository extends CrudRepository {
               "isFollowed",
             ],
             [
+              Sequelize.literal(
+                `NOT EXISTS (
+                  SELECT 1 FROM Follows AS F
+                  WHERE F.followerId = ${sequelize.escape(currentUserId)}
+                  AND F.followingId = following.id
+                ) AND EXISTS (
+                  SELECT 1 FROM Follows AS F2
+                  WHERE F2.followerId = following.id
+                  AND F2.followingId = ${sequelize.escape(currentUserId)}
+                )`
+              ),
+              "showFollowBack",
+            ],
+            [
               Sequelize.literal(`(
             SELECT status FROM FollowRequests AS FR
             WHERE FR.requesterId = ${sequelize.escape(currentUserId)}
@@ -415,6 +456,7 @@ class UserRepository extends CrudRepository {
     return followingUsers.map((f) => {
       const following = f.following.toJSON();
       following.isFollowed = !!following.isFollowed;
+      following.showFollowBack = !!following.showFollowBack;
       return following;
     });
   }

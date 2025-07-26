@@ -13,7 +13,7 @@ class UserMiddleware {
 
     const requiredFields = ["email", "password"];
     for (const field of requiredFields) {
-      if (!req.body[field]) {
+      if (req.body[field] === undefined || req.body[field] === null) {
         ErrorResponse.message = Messages.REQUIRED_FIELD(field);
         return res.status(STATUS_CODE.BAD_REQUEST).json(ErrorResponse);
       }
@@ -36,7 +36,7 @@ class UserMiddleware {
 
     const requiredFields = ["fullName", "userName", "email", "password"];
     for (const field of requiredFields) {
-      if (!req.body[field]) {
+      if (req.body[field] === undefined || req.body[field] === null) {
         ErrorResponse.message = Messages.REQUIRED_FIELD(field);
         return res.status(STATUS_CODE.BAD_REQUEST).json(ErrorResponse);
       }
@@ -50,6 +50,7 @@ class UserMiddleware {
   }
 
   validateFollowRequest(req, res, next) {
+    console.log("Body-->", req.body);
     if (!req.body) {
       ErrorResponse.message = Messages.REQUIRED_BODY;
       ErrorResponse.statusCode = STATUS_CODE.BAD_REQUEST;
@@ -58,7 +59,7 @@ class UserMiddleware {
 
     const requiredFields = ["userId", "shouldFollow"];
     for (const field of requiredFields) {
-      if (!req.body[field]) {
+      if (req.body[field] === undefined || req.body[field] === null) {
         ErrorResponse.message = Messages.REQUIRED_FIELD(field);
         return res.status(STATUS_CODE.BAD_REQUEST).json(ErrorResponse);
       }
@@ -76,7 +77,7 @@ class UserMiddleware {
 
     const requiredFields = ["isAccept", "id"];
     for (const field of requiredFields) {
-      if (!req.body[field]) {
+      if (req.body[field] === undefined || req.body[field] === null) {
         ErrorResponse.message = Messages.REQUIRED_FIELD(field);
         return res.status(STATUS_CODE.BAD_REQUEST).json(ErrorResponse);
       }
