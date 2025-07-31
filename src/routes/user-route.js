@@ -3,6 +3,7 @@ const router = express.Router();
 const { UserController } = require("../controllers");
 const { UserMiddleware } = require("../middlewares");
 const authenticate = require("../middlewares/auth-middleware");
+const { fileUpload } = require("../middlewares/flie-upload-middleware");
 
 router.get(
   "/follow/requests",
@@ -32,4 +33,10 @@ router.post(
   UserController.toggleFollow
 );
 
-module.exports = router;
+router.post(
+  "/update",
+  authenticate,
+  fileUpload.fields([{ name: "profilePic", maxCount: 1 }]),
+  UserController.updateUserProfile
+),
+  (module.exports = router);

@@ -460,6 +460,45 @@ class UserRepository extends CrudRepository {
       return following;
     });
   }
+
+  async updateUser(userId, data, transaction) {
+    try {
+      const user = await User.findOne({
+        where: { id: userId },
+        include: [
+          {
+            model: UserProfile,
+            as: "profile",
+          },
+        ],
+        transaction,
+      });
+
+      if (!user) {
+        throw new AppError(Messages.USER_NOT_FOUND, STATUS_CODE.NOT_FOUND);
+      }
+
+      await UserProfile.update(data, {
+        where: { userId },
+        transaction,
+      });
+
+      const updatedUser = await User.findOne({
+        where: { id: userId },
+        include: [
+          {
+            model: UserProfile,
+            as: "profile",
+          },
+        ],
+        transaction,
+      });
+
+      return updatedUser;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 module.exports = UserRepository;

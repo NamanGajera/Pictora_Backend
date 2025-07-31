@@ -55,8 +55,8 @@ async function waitForDB(maxRetries = 10, delayMs = 2000) {
   );
 }
 
-app.listen(PORT, async () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(PORT, serverConfig.HOST, async () => {
+  console.log(`Server running on http://${serverConfig.HOST}:${PORT}`);
   try {
     await waitForDB();
   } catch (error) {

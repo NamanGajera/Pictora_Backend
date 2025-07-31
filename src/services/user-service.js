@@ -1,10 +1,11 @@
 const bcrypt = require("bcrypt");
-const db = require("../models");
+const { User, UserProfile, db } = require("../models");
 const { UserRepository, UserProfileRepository } = require("../repositories");
 const { Messages, Enums } = require("../utils/common");
 const { BaseError } = require("sequelize");
 const AppError = require("../utils/errors/app-error");
 const { generateToken } = require("../utils/helpers/jwt");
+const CloudinaryService = require("./cloudinary-service");
 
 const { STATUS_CODE } = Enums;
 const userRepository = new UserRepository();
@@ -28,7 +29,17 @@ class UserService {
   }
   async login(data) {
     try {
-      const user = await userRepository.findOne({ email: data.email });
+      const user = await User.findOne({
+        where: { email: data.email },
+        include: [
+          {
+            model: UserProfile,
+            as: "profile",
+            attributes: ["profilePicture", "gender", "isPrivate"],
+          },
+        ],
+      });
+
       if (!user) {
         throw new AppError(Messages.USER_NOT_FOUND, STATUS_CODE.NOT_FOUND);
       }
@@ -153,6 +164,28 @@ class UserService {
       );
       return response;
     } catch (error) {
+      this.#handleError(error);
+    }
+  }
+  async updateUserProfile(userId, data, files) {
+    const transaction = await db.sequelize.transaction();
+
+    try {
+      const uploadedMedia = await CloudinaryService.uploadBuffer(
+        files.buffer,
+        "userProfile"
+      );
+
+      const updatedData = {
+        ...data,
+        profilePicture: uploadedMedia.secure_url || null,
+      };
+
+      const updatedUser = await userRepository.updateUser(userId, updatedData);
+      await transaction.commit();
+      return updatedUser;
+    } catch (error) {
+      await transaction.rollback();
       this.#handleError(error);
     }
   }

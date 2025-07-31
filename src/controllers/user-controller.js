@@ -164,6 +164,27 @@ class UserController {
       return res.status(status).json(ErrorResponse);
     }
   }
+  async updateUserProfile(req, res) {
+    const userId = req.user.id;
+    try {
+      const users = await UserService.updateUserProfile(
+        userId,
+        {},
+        req.files?.profilePic?.[0] ?? null
+      );
+      SuccessResponse.data = users;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      res.status(STATUS_CODE.OK).json(SuccessResponse);
+    } catch (error) {
+      const status = error.statusCode || 500;
+      const message = error.message || Messages.SERVER_ERROR;
+
+      ErrorResponse.message = message;
+      ErrorResponse.statusCode = status;
+
+      return res.status(status).json(ErrorResponse);
+    }
+  }
 }
 
 module.exports = new UserController();

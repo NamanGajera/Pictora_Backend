@@ -5,6 +5,7 @@ const {
   PostLike,
   PostArchive,
   User,
+  UserProfile,
   sequelize,
 } = require("../models");
 const { Sequelize } = require("sequelize");
@@ -36,6 +37,18 @@ class PostRepository extends CrudRepository {
         {
           model: PostMedia,
           as: "mediaData",
+        },
+        {
+          model: User,
+          as: "userData",
+          include: [
+            {
+              model: UserProfile,
+              as: "profile",
+              attributes: ["profilePicture"],
+            },
+          ],
+          attributes: ["id", "fullName", "userName", "email"],
         },
       ],
       attributes: {

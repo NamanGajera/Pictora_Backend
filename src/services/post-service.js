@@ -37,7 +37,7 @@ class PostService {
       );
       const mediaData = [];
 
-      let videoIndex = 0; // To match thumbnail with video
+      let videoIndex = 0;
 
       for (let i = 0; i < mediaFiles.length; i++) {
         const file = mediaFiles[i];
