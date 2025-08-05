@@ -202,10 +202,10 @@ class PostRepository extends CrudRepository {
             as: "likedPost",
           },
         ],
-        attributes: ["id", "username", "fullName"],
+        attributes: ["id", "userName", "fullName"],
         offset: skip,
         limit: take,
-        order: [["username", "ASC"]],
+        order: [["userName", "ASC"]],
       });
 
       return {

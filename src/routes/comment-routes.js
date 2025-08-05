@@ -34,6 +34,6 @@ router.post(
 
 router.delete("/:commentId", authenticate, CommentController.deleteComment);
 
-router.put("/:commentId/pin", authenticate, CommentController.togglePinComment);
+router.put("/pin/:commentId", authenticate, CommentController.togglePinComment);
 
 module.exports = router;

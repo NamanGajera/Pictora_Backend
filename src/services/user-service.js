@@ -1,5 +1,6 @@
 const bcrypt = require("bcrypt");
-const { User, UserProfile, db } = require("../models");
+const db = require("../models");
+const { User, UserProfile } = require("../models");
 const { UserRepository, UserProfileRepository } = require("../repositories");
 const { Messages, Enums } = require("../utils/common");
 const { BaseError } = require("sequelize");

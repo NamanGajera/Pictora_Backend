@@ -38,6 +38,7 @@ class UserController {
       SuccessResponse.message = Messages.USER_REGISTERED;
       res.status(STATUS_CODE.OK).json(SuccessResponse);
     } catch (error) {
+      console.log("Error--> ", error);
       const status = error.statusCode || 500;
       const message = error.message || Messages.SERVER_ERROR;
 

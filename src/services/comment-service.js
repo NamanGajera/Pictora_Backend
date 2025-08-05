@@ -25,19 +25,14 @@ class CommentService {
   }
 
   async addComment(data) {
+    const transaction = await db.sequelize.transaction();
+
     try {
-      const { postId, userId, commentText, parentCommentId } = data;
-      const commentData = {
-        postId,
-        userId,
-        comment: commentText,
-      };
-      if (parentCommentId) {
-        commentData.parentCommentId = parentCommentId;
-      }
-      const comment = await commentRepository.create(commentData);
+      const comment = await commentRepository.createComment(data, transaction);
+      await transaction.commit();
       return comment;
     } catch (error) {
+      await transaction.rollback();
       this.#handleError(error);
     }
   }
@@ -88,13 +83,14 @@ class CommentService {
   }
   async deleteComment(data) {
     const { commentId } = data;
+    const transaction = await db.sequelize.transaction();
+
     try {
-      const comment = await commentRepository.get(commentId);
-      if (!comment) {
-        throw new AppError(Messages.COMMENT_NOT_FOUND, STATUS_CODE.NOT_FOUND);
-      }
-      return await commentRepository.destroy(commentId);
+      await commentRepository.deleteComment(commentId, transaction);
+      await transaction.commit();
+      return true;
     } catch (error) {
+      await transaction.rollback();
       this.#handleError(error);
     }
   }
