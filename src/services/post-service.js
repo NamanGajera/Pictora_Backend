@@ -144,13 +144,15 @@ class PostService {
     }
   }
   async togglePostArchive(data) {
-    const { postId } = data;
+    const { postId, userId } = data;
     try {
       const post = await postRepository.findOne({ id: postId });
-      console.log("Post Data", post);
 
       if (!post) {
         throw new AppError(Messages.POST_NOT_FOUND, STATUS_CODE.NOT_FOUND);
+      }
+      if (post.userId !== userId) {
+        throw new AppError(Messages.ACCESS_DENIED, STATUS_CODE.FORBIDDEN);
       }
       const response = await postRepository.togglePostArchive(data);
       return response;
@@ -160,12 +162,15 @@ class PostService {
   }
 
   async deletePost(data) {
-    const { postId } = data;
+    const { postId, userId } = data;
     try {
       const post = await postRepository.get(postId);
 
       if (!post) {
         throw new AppError(Messages.POST_NOT_FOUND, STATUS_CODE.NOT_FOUND);
+      }
+      if (post.userId !== userId) {
+        throw new AppError(Messages.ACCESS_DENIED, STATUS_CODE.FORBIDDEN);
       }
 
       await postRepository.destroy(postId);

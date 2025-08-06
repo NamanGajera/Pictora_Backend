@@ -190,6 +190,7 @@ class PostController {
     try {
       const response = await PostService.deletePost({
         postId: req.params.postId,
+        userId: req.user.id,
       });
       return res
         .status(STATUS_CODE.OK)
