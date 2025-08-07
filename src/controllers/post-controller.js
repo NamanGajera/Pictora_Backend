@@ -209,6 +209,7 @@ class PostController {
         postId: req.params.postId,
         skip: req.body.skip,
         take: req.body.take,
+        userId: req.user.id,
       });
       SuccessResponse.data = response.users;
       SuccessResponse.message = Messages.FETCHED_SUCCESS;

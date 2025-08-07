@@ -227,9 +227,10 @@ class PostService {
   }
   async getAllUserWhoLikePost(data) {
     try {
-      const { postId, skip = 0, take = 10 } = data;
+      const { postId, skip = 0, take = 10, userId } = data;
       const { users, total } = await postRepository.getAllUsersWhoLikePost(
         postId,
+        userId,
         { skip: parseInt(skip), take: parseInt(take) }
       );
       return { users, total };

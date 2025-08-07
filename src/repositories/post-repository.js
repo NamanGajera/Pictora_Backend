@@ -21,7 +21,27 @@ class PostRepository extends CrudRepository {
   }
 
   async createPost(data, transaction) {
-    return await Post.create(data, { transaction });
+    const post = await Post.create(data, { transaction });
+    const postWithUser = await Post.findOne(
+      {
+        where: { id: post.id },
+        include: {
+          model: User,
+          as: "userData",
+          include: [
+            {
+              model: UserProfile,
+              as: "profile",
+              attributes: ["profilePicture"],
+            },
+          ],
+          attributes: ["id", "fullName", "userName", "email"],
+        },
+        transaction,
+      }
+    );
+    return postWithUser;
+
   }
 
   #buildBasePostQuery(userId) {
@@ -60,7 +80,6 @@ class PostRepository extends CrudRepository {
     };
   }
 
-  // Helper to build EXISTS attributes
   #buildExistsAttribute(table, userId, alias) {
     return [
       Sequelize.literal(`
@@ -74,7 +93,6 @@ class PostRepository extends CrudRepository {
     ];
   }
 
-  // Format post response consistently
   #formatPostResponse(posts) {
     if (Array.isArray(posts)) {
       return posts.map((post) => this.#formatSinglePost(post));
@@ -185,7 +203,7 @@ class PostRepository extends CrudRepository {
     });
   }
 
-  async getAllUsersWhoLikePost(postId, { skip = 0, take = 10 } = {}) {
+  async getAllUsersWhoLikePost(postId, userId, { skip = 0, take = 10 } = {}) {
     try {
       const post = await Post.findByPk(postId);
       if (!post) {
@@ -201,15 +219,47 @@ class PostRepository extends CrudRepository {
             required: true,
             as: "likedPost",
           },
+          {
+            model: UserProfile,
+            as: "profile",
+            attributes: ["profilePicture"],
+          }
         ],
-        attributes: ["id", "userName", "fullName"],
+        attributes: ["id", "userName", "fullName", [
+          Sequelize.literal(`EXISTS (
+              SELECT 1 FROM Follows AS F
+              WHERE F.followerId = ${sequelize.escape(userId)}
+              AND F.followingId = User.id
+            )`),
+          "isFollowed",
+        ],
+          [
+            Sequelize.literal(
+              `NOT EXISTS (
+                  SELECT 1 FROM Follows AS F
+                  WHERE F.followerId = ${sequelize.escape(userId)}
+                  AND F.followingId = User.id
+                ) AND EXISTS (
+                  SELECT 1 FROM Follows AS F2
+                  WHERE F2.followerId = User.id
+                  AND F2.followingId = ${sequelize.escape(userId)}
+                )`
+            ),
+            "showFollowBack",
+          ],],
         offset: skip,
         limit: take,
         order: [["userName", "ASC"]],
       });
 
       return {
-        users,
+        users: users.map(user => {
+          return {
+            ...user.toJSON(),
+            isFollowed: Boolean(user.getDataValue("isFollowed")),
+            showFollowBack: Boolean(user.getDataValue("showFollowBack")),
+          };
+        }),
         total: count,
       };
     } catch (error) {
