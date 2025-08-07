@@ -130,6 +130,14 @@ class UserRepository extends CrudRepository {
         {
           model: UserProfile,
           as: "profile",
+          attributes: [
+            "profilePicture",
+            "bio",
+            "dob",
+            "gender",
+            "isPrivate",
+            "location",
+          ],
         },
         {
           model: UserCount,
@@ -137,6 +145,7 @@ class UserRepository extends CrudRepository {
           attributes: ["followerCount", "followingCount", "postCount"],
         },
       ],
+      attributes: ["id", "userName", "fullName", "email"],
     });
 
     if (!user) {

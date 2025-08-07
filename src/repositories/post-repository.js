@@ -22,26 +22,23 @@ class PostRepository extends CrudRepository {
 
   async createPost(data, transaction) {
     const post = await Post.create(data, { transaction });
-    const postWithUser = await Post.findOne(
-      {
-        where: { id: post.id },
-        include: {
-          model: User,
-          as: "userData",
-          include: [
-            {
-              model: UserProfile,
-              as: "profile",
-              attributes: ["profilePicture"],
-            },
-          ],
-          attributes: ["id", "fullName", "userName", "email"],
-        },
-        transaction,
-      }
-    );
+    const postWithUser = await Post.findOne({
+      where: { id: post.id },
+      include: {
+        model: User,
+        as: "userData",
+        include: [
+          {
+            model: UserProfile,
+            as: "profile",
+            attributes: ["profilePicture"],
+          },
+        ],
+        attributes: ["id", "fullName", "userName", "email"],
+      },
+      transaction,
+    });
     return postWithUser;
-
   }
 
   #buildBasePostQuery(userId) {
@@ -223,16 +220,20 @@ class PostRepository extends CrudRepository {
             model: UserProfile,
             as: "profile",
             attributes: ["profilePicture"],
-          }
+          },
         ],
-        attributes: ["id", "userName", "fullName", [
-          Sequelize.literal(`EXISTS (
+        attributes: [
+          "id",
+          "userName",
+          "fullName",
+          [
+            Sequelize.literal(`EXISTS (
               SELECT 1 FROM Follows AS F
               WHERE F.followerId = ${sequelize.escape(userId)}
               AND F.followingId = User.id
             )`),
-          "isFollowed",
-        ],
+            "isFollowed",
+          ],
           [
             Sequelize.literal(
               `NOT EXISTS (
@@ -246,14 +247,24 @@ class PostRepository extends CrudRepository {
                 )`
             ),
             "showFollowBack",
-          ],],
+          ],
+          [
+            Sequelize.literal(`(
+                    SELECT status FROM FollowRequests AS FR
+                    WHERE FR.requesterId = ${sequelize.escape(userId)}
+                    AND FR.targetId = User.id
+                    LIMIT 1
+                  )`),
+            "followRequestStatus",
+          ],
+        ],
         offset: skip,
         limit: take,
         order: [["userName", "ASC"]],
       });
 
       return {
-        users: users.map(user => {
+        users: users.map((user) => {
           return {
             ...user.toJSON(),
             isFollowed: Boolean(user.getDataValue("isFollowed")),
