@@ -144,12 +144,12 @@ class UserService {
     const { userId, currentUserId, skip = 0, take = 10 } = data;
     console.log("Usr Data--->", { userId, currentUserId });
     try {
-      const response = await userRepository.getAllFollowers(
+      const { users, total } = await userRepository.getAllFollowers(
         userId,
         currentUserId,
         { skip: parseInt(skip), take: parseInt(take) }
       );
-      return response;
+      return { users, total };
     } catch (error) {
       this.#handleError(error);
     }
@@ -158,12 +158,12 @@ class UserService {
     const { userId, currentUserId, skip = 0, take = 10 } = data;
     console.log("Usr Data--->", { userId, currentUserId });
     try {
-      const response = await userRepository.getAllFollowingUser(
+      const { users, total } = await userRepository.getAllFollowingUser(
         userId,
         currentUserId,
         { skip: parseInt(skip), take: parseInt(take) }
       );
-      return response;
+      return { users, total };
     } catch (error) {
       this.#handleError(error);
     }

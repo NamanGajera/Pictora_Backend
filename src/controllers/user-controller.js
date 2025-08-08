@@ -124,15 +124,18 @@ class UserController {
   async getAllFollowers(req, res) {
     const userId = req.body.userId || req.user.id;
     try {
-      const users = await UserService.getAllFollowers({
+      const response = await UserService.getAllFollowers({
         userId,
         currentUserId: req.user.id,
         skip: req.body.skip,
         take: req.body.take,
       });
-      SuccessResponse.data = users;
+      SuccessResponse.data = response.users;
       SuccessResponse.message = Messages.FETCHED_SUCCESS;
-      res.status(STATUS_CODE.OK).json(SuccessResponse);
+      const totalData = response.total;
+      return res
+        .status(STATUS_CODE.OK)
+        .json({ ...SuccessResponse, total: totalData });
     } catch (error) {
       const status = error.statusCode || 500;
       const message = error.message || Messages.SERVER_ERROR;
@@ -146,16 +149,21 @@ class UserController {
   async getAllFollowingUsers(req, res) {
     const userId = req.body.userId || req.user.id;
     try {
-      const users = await UserService.getAllFollowingUsers({
+      const response = await UserService.getAllFollowingUsers({
         userId,
         currentUserId: req.user.id,
         skip: req.body.skip,
         take: req.body.take,
       });
-      SuccessResponse.data = users;
+
+      SuccessResponse.data = response.users;
       SuccessResponse.message = Messages.FETCHED_SUCCESS;
-      res.status(STATUS_CODE.OK).json(SuccessResponse);
+      const totalData = response.total;
+      return res
+        .status(STATUS_CODE.OK)
+        .json({ ...SuccessResponse, total: totalData });
     } catch (error) {
+      console.log("Error in getAllFollowingUsers: ", error);
       const status = error.statusCode || 500;
       const message = error.message || Messages.SERVER_ERROR;
 

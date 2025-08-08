@@ -47,13 +47,13 @@ class UserRepository extends CrudRepository {
 
     const existingRequest = targetUser.profile.isPrivate
       ? await FollowRequest.findOne({
-          where: {
-            requesterId: followerId,
-            targetId: followingId,
-            status: FOLLOW_REQUEST_STATUS.PENDING,
-          },
-          transaction,
-        })
+        where: {
+          requesterId: followerId,
+          targetId: followingId,
+          status: FOLLOW_REQUEST_STATUS.PENDING,
+        },
+        transaction,
+      })
       : null;
 
     if (shouldFollow) {
@@ -312,7 +312,7 @@ class UserRepository extends CrudRepository {
       throw new AppError(Messages.ACCESS_DENIED, STATUS_CODE.FORBIDDEN);
     }
 
-    const followers = await Follow.findAll({
+    const { count, rows: followers } = await Follow.findAndCountAll({
       where: { followingId: userId },
       include: [
         {
@@ -367,12 +367,15 @@ class UserRepository extends CrudRepository {
       limit: take,
       order: [["createdAt", "DESC"]],
     });
-    return followers.map((f) => {
-      const follower = f.follower.toJSON();
-      follower.isFollowed = !!follower.isFollowed;
-      follower.showFollowBack = !!follower.showFollowBack;
-      return follower;
-    });
+    return {
+      users: followers.map((f) => {
+        const follower = f.follower.toJSON();
+        follower.isFollowed = !!follower.isFollowed;
+        follower.showFollowBack = !!follower.showFollowBack;
+        return follower;
+      }),
+      total: count,
+    };
   }
 
   async getAllFollowingUser(
@@ -406,8 +409,7 @@ class UserRepository extends CrudRepository {
     if (!isAllowed) {
       throw new AppError(Messages.ACCESS_DENIED, STATUS_CODE.FORBIDDEN);
     }
-
-    const followingUsers = await Follow.findAll({
+    const { count, rows: followingUsers } = await Follow.findAndCountAll({
       where: { followerId: userId },
       include: [
         {
@@ -462,12 +464,15 @@ class UserRepository extends CrudRepository {
       limit: take,
       order: [["createdAt", "DESC"]],
     });
-    return followingUsers.map((f) => {
-      const following = f.following.toJSON();
-      following.isFollowed = !!following.isFollowed;
-      following.showFollowBack = !!following.showFollowBack;
-      return following;
-    });
+    return {
+      users: followingUsers.map((f) => {
+        const following = f.following.toJSON();
+        following.isFollowed = !!following.isFollowed;
+        following.showFollowBack = !!following.showFollowBack;
+        return following;
+      }),
+      total: count,
+    };
   }
 
   async updateUser(userId, data, transaction) {

@@ -5,6 +5,7 @@ const {
   PostLike,
   PostArchive,
   User,
+  UserCount,
   UserProfile,
   sequelize,
 } = require("../models");
@@ -22,6 +23,7 @@ class PostRepository extends CrudRepository {
 
   async createPost(data, transaction) {
     const post = await Post.create(data, { transaction });
+    await UserCount.increment("postCount", { by: 1, where: { userId: post.userId } });
     const postWithUser = await Post.findOne({
       where: { id: post.id },
       include: {
