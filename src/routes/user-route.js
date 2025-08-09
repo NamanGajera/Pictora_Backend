@@ -26,6 +26,10 @@ router.post("/followers", authenticate, UserController.getAllFollowers);
 
 router.post("/following", authenticate, UserController.getAllFollowingUsers);
 
+router.post("/following", authenticate, UserController.getAllFollowingUsers);
+
+router.post("/discover", authenticate, UserController.getDiscoverUsers);
+
 router.post(
   "/follow",
   authenticate,

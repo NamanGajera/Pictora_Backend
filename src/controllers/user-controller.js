@@ -194,6 +194,32 @@ class UserController {
       return res.status(status).json(ErrorResponse);
     }
   }
+
+  async getDiscoverUsers(req, res) {
+    const userId = req.user.id;
+
+    try {
+      const response = await UserService.getDiscoverUsers({
+        userId,
+        skip: req.body.skip || 0,
+        take: req.body.take || 10,
+      });
+      SuccessResponse.data = response.users;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      const totalData = response.total;
+      return res
+        .status(STATUS_CODE.OK)
+        .json({ ...SuccessResponse, total: totalData });
+    } catch (error) {
+      const status = error.statusCode || 500;
+      const message = error.message || Messages.SERVER_ERROR;
+
+      ErrorResponse.message = message;
+      ErrorResponse.statusCode = status;
+
+      return res.status(status).json(ErrorResponse);
+    }
+  }
 }
 
 module.exports = new UserController();

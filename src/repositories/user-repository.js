@@ -9,7 +9,7 @@ const {
 const CrudRepository = require("./crud-repository");
 const AppError = require("../utils/errors/app-error");
 const { Enums, Messages } = require("../utils/common");
-const { Sequelize, where } = require("sequelize");
+const { Sequelize, Op } = require("sequelize");
 
 const { STATUS_CODE, FOLLOW_REQUEST_STATUS } = Enums;
 class UserRepository extends CrudRepository {
@@ -47,13 +47,13 @@ class UserRepository extends CrudRepository {
 
     const existingRequest = targetUser.profile.isPrivate
       ? await FollowRequest.findOne({
-        where: {
-          requesterId: followerId,
-          targetId: followingId,
-          status: FOLLOW_REQUEST_STATUS.PENDING,
-        },
-        transaction,
-      })
+          where: {
+            requesterId: followerId,
+            targetId: followingId,
+            status: FOLLOW_REQUEST_STATUS.PENDING,
+          },
+          transaction,
+        })
       : null;
 
     if (shouldFollow) {
@@ -473,6 +473,80 @@ class UserRepository extends CrudRepository {
       }),
       total: count,
     };
+  }
+
+  async getDiscoverUsers(currentUserId, { skip = 0, take = 10 } = {}) {
+    try {
+      const { count, rows: users } = await User.findAndCountAll({
+        where: {
+          id: {
+            [Op.ne]: currentUserId,
+            [Op.notIn]: Sequelize.literal(`(
+            SELECT followingId
+            FROM Follows
+            WHERE followerId = ${sequelize.escape(currentUserId)}
+          )`),
+          },
+        },
+        include: [
+          {
+            model: UserProfile,
+            as: "profile",
+            attributes: ["profilePicture"],
+          },
+        ],
+        attributes: [
+          "id",
+          "fullName",
+          "userName",
+          [
+            Sequelize.literal(`EXISTS (
+              SELECT 1 FROM Follows AS F
+              WHERE F.followerId = ${sequelize.escape(currentUserId)}
+              AND F.followingId = User.id
+            )`),
+            "isFollowed",
+          ],
+          [
+            Sequelize.literal(
+              `NOT EXISTS (
+                  SELECT 1 FROM Follows AS F
+                  WHERE F.followerId = ${sequelize.escape(currentUserId)}
+                  AND F.followingId = User.id
+                ) AND EXISTS (
+                  SELECT 1 FROM Follows AS F2
+                  WHERE F2.followerId = User.id
+                  AND F2.followingId = ${sequelize.escape(currentUserId)}
+                )`
+            ),
+            "showFollowBack",
+          ],
+          [
+            Sequelize.literal(`(
+            SELECT status FROM FollowRequests AS FR
+            WHERE FR.requesterId = ${sequelize.escape(currentUserId)}
+            AND FR.targetId = User.id
+            LIMIT 1
+          )`),
+            "followRequestStatus",
+          ],
+        ],
+        offset: skip,
+        limit: take,
+      });
+
+      return {
+        users: users.map((f) => {
+          const following = f.toJSON();
+          following.isFollowed = !!following.isFollowed;
+          following.showFollowBack = !!following.showFollowBack;
+          return following;
+        }),
+        total: count,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   async updateUser(userId, data, transaction) {

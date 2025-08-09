@@ -190,6 +190,19 @@ class UserService {
       this.#handleError(error);
     }
   }
+
+  async getDiscoverUsers(data) {
+    const { userId, skip = 0, take = 10 } = data;
+    try {
+      const { users, total } = await userRepository.getDiscoverUsers(userId, {
+        skip: parseInt(skip),
+        take: parseInt(take),
+      });
+      return { users, total };
+    } catch (error) {
+      this.#handleError(error);
+    }
+  }
 }
 
 module.exports = new UserService();
