@@ -52,7 +52,7 @@ class CommentRepository extends CrudRepository {
           attributes: ["id", "userName", "fullName"],
           include: {
             association: "profile",
-            attributes: ["id", "userId", "profilePicture"],
+            attributes: ["id", "userId", "profilePicture", "isPrivate"],
           },
         },
       ],

@@ -132,6 +132,7 @@ const Messages = {
   REQUEST_ACCEPTED: "Follow request accepted",
   REQUEST_REJECTED: "Follow request rejected",
   REQUEST_NOT_FOUND: "Follow request not found",
+  REQUEST_CANCELED: "Follow request canceled.",
 };
 
 module.exports = Messages;

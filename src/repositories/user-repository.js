@@ -47,13 +47,13 @@ class UserRepository extends CrudRepository {
 
     const existingRequest = targetUser.profile.isPrivate
       ? await FollowRequest.findOne({
-        where: {
-          requesterId: followerId,
-          targetId: followingId,
-          status: FOLLOW_REQUEST_STATUS.PENDING,
-        },
-        transaction,
-      })
+          where: {
+            requesterId: followerId,
+            targetId: followingId,
+            status: FOLLOW_REQUEST_STATUS.PENDING,
+          },
+          transaction,
+        })
       : null;
 
     if (shouldFollow) {
@@ -100,6 +100,16 @@ class UserRepository extends CrudRepository {
 
       return { message: Messages.USER_FOLLOWED };
     } else {
+      if (existingRequest) {
+        await FollowRequest.destroy({
+          where: {
+            requesterId: followerId,
+            targetId: followingId,
+          },
+          transaction,
+        });
+        return { message: Messages.REQUEST_CANCELED };
+      }
       if (!existingFollow) {
         throw new AppError(Messages.NOT_FOLLOWING_USER, STATUS_CODE.CONFLICT);
       }
@@ -215,7 +225,7 @@ class UserRepository extends CrudRepository {
             {
               model: UserProfile,
               as: "profile",
-              attributes: ["profilePicture", "bio", "gender"],
+              attributes: ["profilePicture", "isPrivate"],
             },
           ],
         },
@@ -359,7 +369,7 @@ class UserRepository extends CrudRepository {
             {
               model: UserProfile,
               as: "profile",
-              attributes: ["profilePicture"],
+              attributes: ["profilePicture", "isPrivate"],
             },
           ],
         },
@@ -456,7 +466,7 @@ class UserRepository extends CrudRepository {
             {
               model: UserProfile,
               as: "profile",
-              attributes: ["profilePicture"],
+              attributes: ["profilePicture", "isPrivate"],
             },
           ],
         },
@@ -493,7 +503,7 @@ class UserRepository extends CrudRepository {
           {
             model: UserProfile,
             as: "profile",
-            attributes: ["profilePicture"],
+            attributes: ["profilePicture", "isPrivate"],
           },
         ],
         attributes: [

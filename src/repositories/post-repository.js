@@ -24,7 +24,10 @@ class PostRepository extends CrudRepository {
 
   async createPost(data, transaction) {
     const post = await Post.create(data, { transaction });
-    await UserCount.increment("postCount", { by: 1, where: { userId: post.userId } });
+    await UserCount.increment("postCount", {
+      by: 1,
+      where: { userId: post.userId },
+    });
     const postWithUser = await Post.findOne({
       where: { id: post.id },
       include: {
@@ -34,7 +37,7 @@ class PostRepository extends CrudRepository {
           {
             model: UserProfile,
             as: "profile",
-            attributes: ["profilePicture"],
+            attributes: ["profilePicture", "isPrivate"],
           },
         ],
         attributes: ["id", "fullName", "userName", "email"],
@@ -61,7 +64,11 @@ class PostRepository extends CrudRepository {
         transaction,
       });
 
-      await UserCount.decrement("postCount", { by: 1, where: { userId: post.userId }, transaction });
+      await UserCount.decrement("postCount", {
+        by: 1,
+        where: { userId: post.userId },
+        transaction,
+      });
 
       return true;
     } catch (error) {
@@ -90,7 +97,7 @@ class PostRepository extends CrudRepository {
             {
               model: UserProfile,
               as: "profile",
-              attributes: ["profilePicture"],
+              attributes: ["profilePicture", "isPrivate"],
             },
           ],
           attributes: ["id", "fullName", "userName", "email"],
@@ -247,7 +254,7 @@ class PostRepository extends CrudRepository {
           {
             model: UserProfile,
             as: "profile",
-            attributes: ["profilePicture"],
+            attributes: ["profilePicture", "isPrivate"],
           },
         ],
         attributes: [
