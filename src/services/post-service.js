@@ -162,20 +162,15 @@ class PostService {
   }
 
   async deletePost(data) {
+    const transaction = await db.sequelize.transaction();
+
     const { postId, userId } = data;
     try {
-      const post = await postRepository.get(postId);
-
-      if (!post) {
-        throw new AppError(Messages.POST_NOT_FOUND, STATUS_CODE.NOT_FOUND);
-      }
-      if (post.userId !== userId) {
-        throw new AppError(Messages.ACCESS_DENIED, STATUS_CODE.FORBIDDEN);
-      }
-
-      await postRepository.destroy(postId);
+      await postRepository.deletePost(postId, userId, transaction);
+      await transaction.commit();
       return true;
     } catch (error) {
+      await transaction.rollback();
       this.#handleError(error);
     }
   }

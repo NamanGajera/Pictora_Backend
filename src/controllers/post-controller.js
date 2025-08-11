@@ -188,13 +188,13 @@ class PostController {
   }
   async deletePost(req, res) {
     try {
-      const response = await PostService.deletePost({
+      await PostService.deletePost({
         postId: req.params.postId,
         userId: req.user.id,
       });
       return res
         .status(STATUS_CODE.OK)
-        .json({ statusCode: STATUS_CODE.OK, message: Messages.POST_DELETE });
+        .json({ statusCode: STATUS_CODE.OK, message: Messages.POST_DELETED });
     } catch (error) {
       ErrorResponse.message = error.message;
       ErrorResponse.statusCode = error.statusCode;

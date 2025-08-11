@@ -13,6 +13,7 @@ const { Sequelize } = require("sequelize");
 const { Enums, Messages } = require("../utils/common");
 const CrudRepository = require("./crud-repository");
 const AppError = require("../utils/errors/app-error");
+const { message } = require("../utils/common/error-response");
 
 const { STATUS_CODE } = Enums;
 
@@ -41,6 +42,31 @@ class PostRepository extends CrudRepository {
       transaction,
     });
     return postWithUser;
+  }
+
+  async deletePost(postId, userId, transaction) {
+    try {
+      console.log("Deleting post with ID:", postId, "by user ID:", userId);
+      const post = await Post.findByPk(postId);
+
+      if (!post) {
+        throw new AppError(Messages.POST_NOT_FOUND, STATUS_CODE.NOT_FOUND);
+      }
+      if (post.userId !== userId) {
+        throw new AppError(Messages.ACCESS_DENIED, STATUS_CODE.FORBIDDEN);
+      }
+
+      await Post.destroy({
+        where: { id: postId },
+        transaction,
+      });
+
+      await UserCount.decrement("postCount", { by: 1, where: { userId: post.userId }, transaction });
+
+      return true;
+    } catch (error) {
+      throw error;
+    }
   }
 
   #buildBasePostQuery(userId) {

@@ -47,13 +47,13 @@ class UserRepository extends CrudRepository {
 
     const existingRequest = targetUser.profile.isPrivate
       ? await FollowRequest.findOne({
-          where: {
-            requesterId: followerId,
-            targetId: followingId,
-            status: FOLLOW_REQUEST_STATUS.PENDING,
-          },
-          transaction,
-        })
+        where: {
+          requesterId: followerId,
+          targetId: followingId,
+          status: FOLLOW_REQUEST_STATUS.PENDING,
+        },
+        transaction,
+      })
       : null;
 
     if (shouldFollow) {
@@ -277,6 +277,7 @@ class UserRepository extends CrudRepository {
         { status: FOLLOW_REQUEST_STATUS.REJECTED },
         { transaction }
       );
+      await request.destroy({ transaction });
 
       return { message: Messages.REQUEST_REJECTED };
     }
