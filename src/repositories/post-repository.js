@@ -146,6 +146,7 @@ class PostRepository extends CrudRepository {
 
     const { count, rows: posts } = await Post.findAndCountAll({
       ...baseQuery,
+      distinct: true,
       where: {
         ...filter,
         [Sequelize.Op.and]: [
@@ -195,6 +196,7 @@ class PostRepository extends CrudRepository {
 
     const { count, rows: posts } = await Post.findAndCountAll({
       ...baseQuery,
+      distinct: true,
       include: [
         ...baseQuery.include,
         {
@@ -243,6 +245,7 @@ class PostRepository extends CrudRepository {
       }
 
       const { count, rows: users } = await User.findAndCountAll({
+        distinct: true,
         include: [
           {
             model: PostLike,

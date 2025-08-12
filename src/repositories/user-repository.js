@@ -47,13 +47,13 @@ class UserRepository extends CrudRepository {
 
     const existingRequest = targetUser.profile.isPrivate
       ? await FollowRequest.findOne({
-          where: {
-            requesterId: followerId,
-            targetId: followingId,
-            status: FOLLOW_REQUEST_STATUS.PENDING,
-          },
-          transaction,
-        })
+        where: {
+          requesterId: followerId,
+          targetId: followingId,
+          status: FOLLOW_REQUEST_STATUS.PENDING,
+        },
+        transaction,
+      })
       : null;
 
     if (shouldFollow) {
@@ -325,6 +325,7 @@ class UserRepository extends CrudRepository {
 
     const { count, rows: followers } = await Follow.findAndCountAll({
       where: { followingId: userId },
+      distinct: true,
       include: [
         {
           model: User,
@@ -422,6 +423,7 @@ class UserRepository extends CrudRepository {
     }
     const { count, rows: followingUsers } = await Follow.findAndCountAll({
       where: { followerId: userId },
+      distinct: true,
       include: [
         {
           model: User,
@@ -489,6 +491,7 @@ class UserRepository extends CrudRepository {
   async getDiscoverUsers(currentUserId, { skip = 0, take = 10 } = {}) {
     try {
       const { count, rows: users } = await User.findAndCountAll({
+        distinct: true,
         where: {
           id: {
             [Op.ne]: currentUserId,

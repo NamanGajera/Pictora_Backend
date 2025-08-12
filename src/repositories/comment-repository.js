@@ -30,9 +30,9 @@ class CommentRepository extends CrudRepository {
       repliesCount: Number(repliesCount),
       user: data.user
         ? {
-            ...data.user,
-            profile: data.user.profile,
-          }
+          ...data.user,
+          profile: data.user.profile,
+        }
         : null,
     };
   }
@@ -63,6 +63,7 @@ class CommentRepository extends CrudRepository {
 
     const { count, rows: comments } = await Comment.findAndCountAll({
       ...baseQuery,
+      distinct: true,
       where: {
         postId,
         parentCommentId: null,
@@ -106,6 +107,7 @@ class CommentRepository extends CrudRepository {
 
     const { count, rows: replies } = await Comment.findAndCountAll({
       ...baseQuery,
+      distinct: true,
       where: {
         parentCommentId: commentId,
       },
