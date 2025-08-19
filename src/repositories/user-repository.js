@@ -563,6 +563,44 @@ class UserRepository extends CrudRepository {
     }
   }
 
+  async searchUsers(query) {
+    try {
+      if (!query) {
+        throw new AppError(Messages.REQUIRED_FIELD("query"), STATUS_CODE.BAD_REQUEST);
+      }
+
+      let conditions;
+
+      if (query.includes(" ")) {
+        const terms = query.trim().split(/\s+/);
+        conditions = {
+          [Op.and]: terms.map((word) => ({
+            [Op.or]: [
+              { userName: { [Op.like]: `%${word}%` } },
+              { fullName: { [Op.like]: `%${word}%` } },
+            ],
+          })),
+        };
+      } else {
+        conditions = {
+          [Op.or]: [
+            { userName: { [Op.like]: `%${query.trim()}%` } },
+            { fullName: { [Op.like]: `%${query.trim()}%` } },
+          ],
+        };
+      }
+
+      const users = await User.findAll({
+        where: conditions,
+        attributes: ["id", "fullName", "userName"],
+      });
+
+      return users;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async updateUser(userId, data, transaction) {
     try {
       const user = await User.findOne({

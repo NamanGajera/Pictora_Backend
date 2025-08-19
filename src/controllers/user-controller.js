@@ -1,4 +1,5 @@
 const { UserService } = require("../services");
+const userService = require("../services/user-service");
 const {
   SuccessResponse,
   Enums,
@@ -174,7 +175,7 @@ class UserController {
     }
   }
   async updateUserProfile(req, res) {
-    const userId = req.user.id;
+    const userId = req.body.userId || req.user.id;
     try {
       const users = await UserService.updateUserProfile(
         userId,
@@ -210,6 +211,25 @@ class UserController {
       return res
         .status(STATUS_CODE.OK)
         .json({ ...SuccessResponse, total: totalData });
+    } catch (error) {
+      const status = error.statusCode || 500;
+      const message = error.message || Messages.SERVER_ERROR;
+
+      ErrorResponse.message = message;
+      ErrorResponse.statusCode = status;
+
+      return res.status(status).json(ErrorResponse);
+    }
+  }
+
+  async searchUsers(req, res) {
+    try {
+      const users = await userService.searchUsers({
+        query: req.body.query,
+      });
+      SuccessResponse.data = users;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      res.status(STATUS_CODE.OK).json(SuccessResponse);
     } catch (error) {
       const status = error.statusCode || 500;
       const message = error.message || Messages.SERVER_ERROR;

@@ -203,6 +203,16 @@ class UserService {
       this.#handleError(error);
     }
   }
+
+  async searchUsers(data) {
+    const { query } = data;
+    try {
+      const users = await userRepository.searchUsers(query);
+      return users;
+    } catch (error) {
+      this.#handleError(error);
+    }
+  }
 }
 
 module.exports = new UserService();

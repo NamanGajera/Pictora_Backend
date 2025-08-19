@@ -30,6 +30,8 @@ router.post("/following", authenticate, UserController.getAllFollowingUsers);
 
 router.post("/discover", authenticate, UserController.getDiscoverUsers);
 
+router.post("/search", authenticate, UserController.searchUsers);
+
 router.post(
   "/follow",
   authenticate,
@@ -42,5 +44,6 @@ router.post(
   authenticate,
   fileUpload.fields([{ name: "profilePic", maxCount: 1 }]),
   UserController.updateUserProfile
-),
-  (module.exports = router);
+);
+
+module.exports = router;
