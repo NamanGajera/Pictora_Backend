@@ -593,6 +593,13 @@ class UserRepository extends CrudRepository {
       const users = await User.findAll({
         where: conditions,
         attributes: ["id", "fullName", "userName"],
+        include: [
+          {
+            model: UserProfile,
+            as: "profile",
+            attributes: ["profilePicture"],
+          }
+        ]
       });
 
       return users;
