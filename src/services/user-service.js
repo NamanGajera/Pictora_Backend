@@ -172,15 +172,15 @@ class UserService {
     const transaction = await db.sequelize.transaction();
 
     try {
-      const uploadedMedia = await CloudinaryService.uploadBuffer(
-        files.buffer,
-        "userProfile"
-      );
+      const updatedData = { ...data };
 
-      const updatedData = {
-        ...data,
-        profilePicture: uploadedMedia.secure_url || null,
-      };
+      if (files) {
+        const uploadedMedia = await CloudinaryService.uploadBuffer(
+          files.buffer,
+          "userProfile"
+        );
+        updatedData.profilePicture = uploadedMedia.secure_url || null;
+      }
 
       const updatedUser = await userRepository.updateUser(userId, updatedData);
       await transaction.commit();

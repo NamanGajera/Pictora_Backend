@@ -39,8 +39,14 @@ router.post(
   UserController.toggleFollow
 );
 
-router.post(
+router.put(
   "/update",
+  authenticate,
+  UserController.updateUserProfile
+);
+
+router.put(
+  "/update-profilePic",
   authenticate,
   fileUpload.fields([{ name: "profilePic", maxCount: 1 }]),
   UserController.updateUserProfile

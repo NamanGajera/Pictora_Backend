@@ -179,11 +179,11 @@ class UserController {
     try {
       const users = await UserService.updateUserProfile(
         userId,
-        {},
+        req.body ?? {},
         req.files?.profilePic?.[0] ?? null
       );
       SuccessResponse.data = users;
-      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      SuccessResponse.message = Messages.UPDATED_SUCCESS;
       res.status(STATUS_CODE.OK).json(SuccessResponse);
     } catch (error) {
       const status = error.statusCode || 500;
