@@ -47,13 +47,13 @@ class UserRepository extends CrudRepository {
 
     const existingRequest = targetUser.profile.isPrivate
       ? await FollowRequest.findOne({
-        where: {
-          requesterId: followerId,
-          targetId: followingId,
-          status: FOLLOW_REQUEST_STATUS.PENDING,
-        },
-        transaction,
-      })
+          where: {
+            requesterId: followerId,
+            targetId: followingId,
+            status: FOLLOW_REQUEST_STATUS.PENDING,
+          },
+          transaction,
+        })
       : null;
 
     if (shouldFollow) {
@@ -566,7 +566,10 @@ class UserRepository extends CrudRepository {
   async searchUsers(query) {
     try {
       if (!query) {
-        throw new AppError(Messages.REQUIRED_FIELD("query"), STATUS_CODE.BAD_REQUEST);
+        throw new AppError(
+          Messages.REQUIRED_FIELD("query"),
+          STATUS_CODE.BAD_REQUEST
+        );
       }
 
       let conditions;
@@ -598,8 +601,8 @@ class UserRepository extends CrudRepository {
             model: UserProfile,
             as: "profile",
             attributes: ["profilePicture"],
-          }
-        ]
+          },
+        ],
       });
 
       return users;
@@ -624,6 +627,11 @@ class UserRepository extends CrudRepository {
       if (!user) {
         throw new AppError(Messages.USER_NOT_FOUND, STATUS_CODE.NOT_FOUND);
       }
+
+      await User.update(data, {
+        where: { id: userId },
+        transaction,
+      });
 
       await UserProfile.update(data, {
         where: { userId },

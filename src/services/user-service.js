@@ -170,9 +170,20 @@ class UserService {
   }
   async updateUserProfile(userId, data, files) {
     const transaction = await db.sequelize.transaction();
-
+    const { userName, fullName, bio } = data;
     try {
-      const updatedData = { ...data };
+      const updatedData = {};
+
+      if (userName) {
+        updatedData.userName = userName;
+      }
+      if (fullName) {
+        updatedData.fullName = fullName;
+      }
+
+      if (bio) {
+        updatedData.bio = bio;
+      }
 
       if (files) {
         const uploadedMedia = await CloudinaryService.uploadBuffer(
@@ -182,7 +193,11 @@ class UserService {
         updatedData.profilePicture = uploadedMedia.secure_url || null;
       }
 
-      const updatedUser = await userRepository.updateUser(userId, updatedData);
+      const updatedUser = await userRepository.updateUser(
+        userId,
+        updatedData,
+        transaction
+      );
       await transaction.commit();
       return updatedUser;
     } catch (error) {
