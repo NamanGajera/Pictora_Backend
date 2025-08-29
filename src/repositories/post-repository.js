@@ -107,6 +107,7 @@ class PostRepository extends CrudRepository {
         include: [
           this.#buildExistsAttribute("PostLikes", userId, "isLiked"),
           this.#buildExistsAttribute("PostSaves", userId, "isSaved"),
+          this.#buildExistsAttribute("PostArchives", userId, "isArchived"),
         ],
       },
     };
@@ -138,6 +139,7 @@ class PostRepository extends CrudRepository {
       ...data,
       isLiked: Boolean(data.isLiked),
       isSaved: Boolean(data.isSaved),
+      isArchived: Boolean(data.isArchived),
     };
   }
 
@@ -149,16 +151,16 @@ class PostRepository extends CrudRepository {
       distinct: true,
       where: {
         ...filter,
-        [Sequelize.Op.and]: [
-          Sequelize.literal(`
-            NOT EXISTS (
-              SELECT 1
-              FROM PostArchives
-              WHERE PostArchives.postId = Post.id
-              AND PostArchives.userId = ${sequelize.escape(userId)}
-            )
-          `),
-        ],
+        // [Sequelize.Op.and]: [
+        //   Sequelize.literal(`
+        //     NOT EXISTS (
+        //       SELECT 1
+        //       FROM PostArchives
+        //       WHERE PostArchives.postId = Post.id
+        //       AND PostArchives.userId = ${sequelize.escape(userId)}
+        //     )
+        //   `),
+        // ],
       },
       offset: skip,
       limit: take,
