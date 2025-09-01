@@ -71,6 +71,7 @@ class CommentController {
         .json(ErrorResponse);
     }
   }
+
   async getCommentReplies(req, res) {
     try {
       const response = await CommentService.getCommentReplies({
@@ -127,6 +128,28 @@ class CommentController {
         message: `Comment ${shouldPin ? "pinned" : "unpinned"} successfully`,
         data: comment,
       });
+    } catch (error) {
+      ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
+      return res
+        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .json(ErrorResponse);
+    }
+  }
+
+  async getUserComment(req, res) {
+    try {
+      const response = await CommentService.getUserComments({
+        userId: req.user.id,
+        skip: req.body.skip,
+        take: req.body.take,
+      });
+      SuccessResponse.data = response.comments;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      const totalData = response.total;
+      return res
+        .status(STATUS_CODE.OK)
+        .json({ ...SuccessResponse, total: totalData });
     } catch (error) {
       ErrorResponse.message = error.message;
       ErrorResponse.statusCode = error.statusCode;

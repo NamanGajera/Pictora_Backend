@@ -22,6 +22,7 @@ module.exports = {
   POST_TYPE: {
     IMAGE: "Image",
     VIDEO: "Video",
+    REEL: "Reel"
   },
   FOLLOW_REQUEST_STATUS: {
     PENDING: "Pending",

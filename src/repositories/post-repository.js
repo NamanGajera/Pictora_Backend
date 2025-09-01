@@ -15,7 +15,7 @@ const CrudRepository = require("./crud-repository");
 const AppError = require("../utils/errors/app-error");
 const { message } = require("../utils/common/error-response");
 
-const { STATUS_CODE } = Enums;
+const { STATUS_CODE, POST_TYPE } = Enums;
 
 class PostRepository extends CrudRepository {
   constructor() {
@@ -172,6 +172,51 @@ class PostRepository extends CrudRepository {
       total: count,
     };
   }
+
+  async getAllReels(userId, filter, { skip = 0, take = 10 } = {}) {
+
+    const { count, rows: posts } = await Post.findAndCountAll({
+      include: [
+        {
+          model: PostMedia,
+          as: "mediaData",
+          where: { mediaType: POST_TYPE.REEL }
+        },
+        {
+          model: User,
+          as: "userData",
+          include: [
+            {
+              model: UserProfile,
+              as: "profile",
+              attributes: ["profilePicture", "isPrivate"],
+            },
+          ],
+          attributes: ["id", "fullName", "userName", "email"],
+        },
+      ],
+      attributes: {
+        include: [
+          this.#buildExistsAttribute("PostLikes", userId, "isLiked"),
+          this.#buildExistsAttribute("PostSaves", userId, "isSaved"),
+          this.#buildExistsAttribute("PostArchives", userId, "isArchived"),
+        ],
+      },
+      distinct: true,
+      where: {
+        ...filter,
+      },
+      offset: skip,
+      limit: take,
+      order: [["createdAt", "DESC"]],
+    });
+
+    return {
+      posts: this.#formatPostResponse(posts),
+      total: count,
+    };
+  }
+
 
   async getSinglePost(userId, postId) {
     const baseQuery = this.#buildBasePostQuery(userId);

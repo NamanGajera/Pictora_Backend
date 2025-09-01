@@ -59,47 +59,51 @@ class CommentRepository extends CrudRepository {
     };
   }
   async getAllComments(postId, userId, { skip = 0, take = 10 } = {}) {
-    const baseQuery = this.#buildBaseCommentQuery(userId);
+    try {
+      const baseQuery = this.#buildBaseCommentQuery(userId);
 
-    const { count, rows: comments } = await Comment.findAndCountAll({
-      ...baseQuery,
-      distinct: true,
-      where: {
-        postId,
-        parentCommentId: null,
-      },
-      attributes: {
-        include: [
-          [
-            Sequelize.literal(`(
+      const { count, rows: comments } = await Comment.findAndCountAll({
+        ...baseQuery,
+        distinct: true,
+        where: {
+          postId,
+          parentCommentId: null,
+        },
+        attributes: {
+          include: [
+            [
+              Sequelize.literal(`(
               SELECT COUNT(*) FROM Comments AS replies
               WHERE replies.parentCommentId = Comment.id
             )`),
-            "repliesCount",
-          ],
-          [
-            Sequelize.literal(`EXISTS (
+              "repliesCount",
+            ],
+            [
+              Sequelize.literal(`EXISTS (
               SELECT 1 FROM CommentLikes
               WHERE CommentLikes.commentId = Comment.id
               AND CommentLikes.userId = ${sequelize.escape(userId)}
             )`),
-            "isLiked",
+              "isLiked",
+            ],
           ],
+        },
+
+        offset: skip,
+        limit: take,
+        order: [
+          ["isPinned", "DESC"],
+          ["createdAt", "DESC"],
         ],
-      },
+      });
 
-      offset: skip,
-      limit: take,
-      order: [
-        ["isPinned", "DESC"],
-        ["createdAt", "DESC"],
-      ],
-    });
-
-    return {
-      comments: this.#formatCommentResponse(comments),
-      total: count,
-    };
+      return {
+        comments: this.#formatCommentResponse(comments),
+        total: count,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getCommentReplies(commentId, userId, { skip = 0, take = 10 } = {}) {
@@ -274,6 +278,74 @@ class CommentRepository extends CrudRepository {
       await post.reload();
 
       return true;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getUserComment(userId, { skip = 0, take = 10 } = {}) {
+    try {
+      const baseQuery = this.#buildBaseCommentQuery(userId);
+
+      const { count, rows: comments } = await Comment.findAndCountAll({
+        ...baseQuery,
+        distinct: true,
+        where: {
+          userId,
+        },
+        include: [
+          {
+            association: "post",
+            attributes: ["id", "caption", "userId"],
+            include: [
+              {
+                association: "mediaData",
+                attributes: ["id", "mediaUrl", "thumbnail", "mediaType"],
+              },
+              {
+                association: "userData",
+                attributes: ["id", "fullName", "userName"],
+                include: {
+                  association: "profile",
+                  attributes: ["profilePicture"]
+                }
+              },
+            ],
+          },
+
+        ],
+        attributes: {
+          include: [
+            [
+              Sequelize.literal(`(
+              SELECT COUNT(*) FROM Comments AS replies
+              WHERE replies.parentCommentId = Comment.id
+            )`),
+              "repliesCount",
+            ],
+            [
+              Sequelize.literal(`EXISTS (
+              SELECT 1 FROM CommentLikes
+              WHERE CommentLikes.commentId = Comment.id
+              AND CommentLikes.userId = ${sequelize.escape(userId)}
+            )`),
+              "isLiked",
+            ],
+          ],
+        },
+
+        offset: skip,
+        limit: take,
+        order: [
+          ["isPinned", "DESC"],
+          ["createdAt", "DESC"],
+        ],
+      });
+
+      return {
+        comments: this.#formatCommentResponse(comments),
+        total: count,
+      };
     } catch (error) {
       throw error;
     }

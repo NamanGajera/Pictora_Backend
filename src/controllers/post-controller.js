@@ -74,6 +74,30 @@ class PostController {
         .json(ErrorResponse);
     }
   }
+
+  async getAllReel(req, res) {
+    try {
+      const response = await PostService.getAllReels({
+        userId: req.user.id,
+        filterUserId: req.body.userId,
+        skip: req.body.skip,
+        take: req.body.take,
+      });
+      SuccessResponse.data = response.posts;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      const totalData = response.total;
+      return res
+        .status(STATUS_CODE.OK)
+        .json({ ...SuccessResponse, total: totalData });
+    } catch (error) {
+      ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
+      return res
+        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .json(ErrorResponse);
+    }
+  }
+
   async getLikedPosts(req, res) {
     try {
       const response = await PostService.getLikedPosts({

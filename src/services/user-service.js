@@ -170,7 +170,7 @@ class UserService {
   }
   async updateUserProfile(userId, data, files) {
     const transaction = await db.sequelize.transaction();
-    const { userName, fullName, bio } = data;
+    const { userName, fullName, bio, isPrivate } = data;
     try {
       const updatedData = {};
 
@@ -183,6 +183,10 @@ class UserService {
 
       if (bio) {
         updatedData.bio = bio;
+      }
+
+      if (isPrivate) {
+        updatedData.isPrivate = isPrivate;
       }
 
       if (files) {

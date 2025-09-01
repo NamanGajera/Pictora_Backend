@@ -41,7 +41,11 @@ class PostService {
 
       for (let i = 0; i < mediaFiles.length; i++) {
         const file = mediaFiles[i];
-        const mediaType = getFileType(file.mimetype);
+        let mediaType = getFileType(file.mimetype);
+
+        if (mediaFiles.length === 1 && mediaType === POST_TYPE.VIDEO) {
+          mediaType = POST_TYPE.REEL;
+        }
 
         const uploadedMedia = await CloudinaryService.uploadBuffer(
           file.buffer,
@@ -50,7 +54,7 @@ class PostService {
 
         let thumbnailUrl = null;
 
-        if (mediaType === POST_TYPE.VIDEO && thumbnailFiles[videoIndex]) {
+        if ([POST_TYPE.VIDEO, POST_TYPE.REEL].includes(mediaType) && thumbnailFiles[videoIndex]) {
           const uploadedThumbnail = await CloudinaryService.uploadBuffer(
             thumbnailFiles[videoIndex].buffer,
             "posts/thumbnails"
@@ -105,6 +109,29 @@ class PostService {
       this.#handleError(error);
     }
   }
+
+  async getAllReels(data) {
+    try {
+      const { userId, filterUserId, skip = 0, take = 10 } = data;
+
+      const filterData = {};
+      if (filterUserId) {
+        filterData.userId = filterUserId;
+      }
+      const { posts, total } = await postRepository.getAllReels(
+        userId,
+        filterData,
+        { skip: parseInt(skip), take: parseInt(take) }
+      );
+      return {
+        posts,
+        total,
+      };
+    } catch (error) {
+      this.#handleError(error);
+    }
+  }
+
   async getPostById(data) {
     try {
       const { userId, postId } = data;

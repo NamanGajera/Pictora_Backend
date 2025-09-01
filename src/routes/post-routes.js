@@ -48,4 +48,6 @@ router.post("/archived-post", authenticate, PostController.getArchivedPosts);
 
 router.delete("/:postId", authenticate, PostController.deletePost);
 
+router.post("/reels", authenticate, PostController.getAllReel);
+
 module.exports = router;

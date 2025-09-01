@@ -70,6 +70,7 @@ class CommentService {
       this.#handleError(error);
     }
   }
+
   async getCommentReplies(data) {
     const { commentId, userId, skip = 0, take = 10 } = data;
     try {
@@ -81,6 +82,7 @@ class CommentService {
       this.#handleError(error);
     }
   }
+
   async deleteComment(data) {
     const { commentId } = data;
     const transaction = await db.sequelize.transaction();
@@ -94,6 +96,7 @@ class CommentService {
       this.#handleError(error);
     }
   }
+
   async togglePinComment(data) {
     const transaction = await db.sequelize.transaction();
     try {
@@ -127,6 +130,18 @@ class CommentService {
       return updatedComment;
     } catch (error) {
       await transaction.rollback();
+      this.#handleError(error);
+    }
+  }
+
+  async getUserComments(data) {
+    const { userId, skip = 0, take = 10 } = data;
+    try {
+      return await commentRepository.getUserComment(userId, {
+        skip,
+        take,
+      });
+    } catch (error) {
       this.#handleError(error);
     }
   }
