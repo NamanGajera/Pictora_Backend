@@ -12,6 +12,7 @@ const {
 const { Sequelize } = require("sequelize");
 const { Enums, Messages } = require("../utils/common");
 const CrudRepository = require("./crud-repository");
+const UserRepository = require("./user-repository");
 const AppError = require("../utils/errors/app-error");
 const { message } = require("../utils/common/error-response");
 
@@ -135,11 +136,19 @@ class PostRepository extends CrudRepository {
 
   #formatSinglePost(post) {
     const data = post.get({ plain: true });
+
     return {
       ...data,
       isLiked: Boolean(data.isLiked),
       isSaved: Boolean(data.isSaved),
       isArchived: Boolean(data.isArchived),
+      userData: data.userData
+        ? {
+          ...data.userData,
+          isFollowed: Boolean(Number(data.userData.isFollowed)),
+          showFollowBack: Boolean(Number(data.userData.showFollowBack)),
+        }
+        : null,
     };
   }
 
@@ -192,7 +201,42 @@ class PostRepository extends CrudRepository {
               attributes: ["profilePicture", "isPrivate"],
             },
           ],
-          attributes: ["id", "fullName", "userName", "email"],
+          attributes: [
+            "id",
+            "fullName",
+            "userName",
+            [
+              Sequelize.literal(`EXISTS (
+              SELECT 1 FROM Follows AS F
+              WHERE F.followerId = ${sequelize.escape(userId)}
+              AND F.followingId = userData.id
+            )`),
+              "isFollowed",
+            ],
+            [
+              Sequelize.literal(
+                `NOT EXISTS (
+                  SELECT 1 FROM Follows AS F
+                  WHERE F.followerId = ${sequelize.escape(userId)}
+                  AND F.followingId = userData.id
+                ) AND EXISTS (
+                  SELECT 1 FROM Follows AS F2
+                  WHERE F2.followerId = userData.id
+                  AND F2.followingId = ${sequelize.escape(userId)}
+                )`
+              ),
+              "showFollowBack",
+            ],
+            [
+              Sequelize.literal(`(
+            SELECT status FROM FollowRequests AS FR
+            WHERE FR.requesterId = ${sequelize.escape(userId)}
+            AND FR.targetId = userData.id
+            LIMIT 1
+          )`),
+              "followRequestStatus",
+            ],
+          ],
         },
       ],
       attributes: {
