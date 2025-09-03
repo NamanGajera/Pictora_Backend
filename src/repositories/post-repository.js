@@ -182,8 +182,9 @@ class PostRepository extends CrudRepository {
     };
   }
 
-  async getAllReels(userId, filter, { skip = 0, take = 10 } = {}) {
+  async getAllReels(userId, filter, seed, { skip = 0, take = 10 } = {}) {
 
+    const finalSeed = seed || Math.floor(Math.random() * 100000);
     const { count, rows: posts } = await Post.findAndCountAll({
       include: [
         {
@@ -252,12 +253,13 @@ class PostRepository extends CrudRepository {
       },
       offset: skip,
       limit: take,
-      order: [["createdAt", "DESC"]],
+      order: Sequelize.literal(`MD5(CONCAT(\`Post\`.\`id\`, '${finalSeed}')) ASC`),
     });
 
     return {
       posts: this.#formatPostResponse(posts),
       total: count,
+      seed: finalSeed,
     };
   }
 

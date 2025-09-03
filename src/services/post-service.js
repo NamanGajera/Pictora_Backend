@@ -31,16 +31,20 @@ class PostService {
 
     try {
       const { userId, caption, mediaFiles, thumbnailFiles = [] } = data;
+
+      // Validate input
+      if (!mediaFiles || mediaFiles.length === 0) {
+        throw new AppError('Media files are required', STATUS_CODE.BAD_REQUEST);
+      }
+
+      // Create post
       const post = await postRepository.createPost(
         { userId, caption },
         transaction
       );
-      const mediaData = [];
 
-      let videoIndex = 0;
-
-      for (let i = 0; i < mediaFiles.length; i++) {
-        const file = mediaFiles[i];
+      // Process media files in parallel
+      const mediaProcessingPromises = mediaFiles.map(async (file, index) => {
         let mediaType = getFileType(file.mimetype);
 
         if (mediaFiles.length === 1 && mediaType === POST_TYPE.VIDEO) {
@@ -54,32 +58,37 @@ class PostService {
 
         let thumbnailUrl = null;
 
-        if ([POST_TYPE.VIDEO, POST_TYPE.REEL].includes(mediaType) && thumbnailFiles[videoIndex]) {
-          const uploadedThumbnail = await CloudinaryService.uploadBuffer(
-            thumbnailFiles[videoIndex].buffer,
-            "posts/thumbnails"
-          );
-          thumbnailUrl = uploadedThumbnail.secure_url;
-          videoIndex++;
+        if ([POST_TYPE.VIDEO, POST_TYPE.REEL].includes(mediaType)) {
+          const thumbnailFile = thumbnailFiles[index];
+          if (thumbnailFile) {
+            const uploadedThumbnail = await CloudinaryService.uploadBuffer(
+              thumbnailFile.buffer,
+              "posts/thumbnails"
+            );
+            thumbnailUrl = uploadedThumbnail.secure_url;
+          } else {
+            console.warn(`No thumbnail provided for video at index ${index}`);
+          }
         }
 
-        const postMedia = await postMediaRepository.createPostMedia(
+        return await postMediaRepository.createPostMedia(
           {
             postId: post.id,
             mediaUrl: uploadedMedia.secure_url,
             thumbnail: thumbnailUrl,
             mediaType,
+            publicId: uploadedMedia.public_id, // Useful for future management
           },
           transaction
         );
+      });
 
-        mediaData.push(postMedia);
-      }
-
+      const mediaData = await Promise.all(mediaProcessingPromises);
       await transaction.commit();
+
       return {
         ...post.toJSON(),
-        mediaData,
+        mediaData: mediaData.map(media => media.toJSON()),
       };
     } catch (error) {
       await transaction.rollback();
@@ -112,20 +121,22 @@ class PostService {
 
   async getAllReels(data) {
     try {
-      const { userId, filterUserId, skip = 0, take = 10 } = data;
+      const { userId, filterUserId, skip = 0, take = 10, seedData } = data;
 
       const filterData = {};
       if (filterUserId) {
         filterData.userId = filterUserId;
       }
-      const { posts, total } = await postRepository.getAllReels(
+      const { posts, total, seed } = await postRepository.getAllReels(
         userId,
         filterData,
+        seedData,
         { skip: parseInt(skip), take: parseInt(take) }
       );
       return {
         posts,
         total,
+        seed,
       };
     } catch (error) {
       this.#handleError(error);
