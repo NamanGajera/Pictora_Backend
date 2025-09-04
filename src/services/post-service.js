@@ -34,7 +34,7 @@ class PostService {
 
       // Validate input
       if (!mediaFiles || mediaFiles.length === 0) {
-        throw new AppError('Media files are required', STATUS_CODE.BAD_REQUEST);
+        throw new AppError("Media files are required", STATUS_CODE.BAD_REQUEST);
       }
 
       // Create post
@@ -88,7 +88,7 @@ class PostService {
 
       return {
         ...post.toJSON(),
-        mediaData: mediaData.map(media => media.toJSON()),
+        mediaData: mediaData.map((media) => media.toJSON()),
       };
     } catch (error) {
       await transaction.rollback();
@@ -98,21 +98,22 @@ class PostService {
 
   async getAllPosts(data) {
     try {
-      const { userId, filterUserId, skip = 0, take = 10 } = data;
+      const { userId, filterUserId, skip = 0, take = 10, seedData } = data;
 
       const filterData = {};
       if (filterUserId) {
         filterData.userId = filterUserId;
       }
-      const { posts, total } = await postRepository.getAllPosts(
+      const { posts, total, seed } = await postRepository.getAllPosts(
         userId,
         filterData,
+        seedData,
         { skip: parseInt(skip), take: parseInt(take) }
       );
-      console.log("Total Post-->>>", total);
       return {
         posts,
         total,
+        seed,
       };
     } catch (error) {
       this.#handleError(error);

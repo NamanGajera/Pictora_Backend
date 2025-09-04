@@ -144,15 +144,18 @@ class PostRepository extends CrudRepository {
       isArchived: Boolean(data.isArchived),
       userData: data.userData
         ? {
-          ...data.userData,
-          isFollowed: Boolean(Number(data.userData.isFollowed)),
-          showFollowBack: Boolean(Number(data.userData.showFollowBack)),
-        }
+            ...data.userData,
+            isFollowed: Boolean(Number(data.userData.isFollowed)),
+            showFollowBack: Boolean(Number(data.userData.showFollowBack)),
+          }
         : null,
     };
   }
 
-  async getAllPosts(userId, filter, { skip = 0, take = 10 } = {}) {
+  async getAllPosts(userId, filter, seed, { skip = 0, take = 10 } = {}) {
+    console.log("Messages ==>>", seed);
+    const finalSeed = seed || Math.floor(Math.random() * 100000);
+
     const baseQuery = this.#buildBasePostQuery(userId);
 
     const { count, rows: posts } = await Post.findAndCountAll({
@@ -173,24 +176,26 @@ class PostRepository extends CrudRepository {
       },
       offset: skip,
       limit: take,
-      order: [["createdAt", "DESC"]],
+      order: Sequelize.literal(
+        `MD5(CONCAT(\`Post\`.\`id\`, '${finalSeed}')) ASC`
+      ),
     });
 
     return {
       posts: this.#formatPostResponse(posts),
       total: count,
+      seed: finalSeed,
     };
   }
 
   async getAllReels(userId, filter, seed, { skip = 0, take = 10 } = {}) {
-
     const finalSeed = seed || Math.floor(Math.random() * 100000);
     const { count, rows: posts } = await Post.findAndCountAll({
       include: [
         {
           model: PostMedia,
           as: "mediaData",
-          where: { mediaType: POST_TYPE.REEL }
+          where: { mediaType: POST_TYPE.REEL },
         },
         {
           model: User,
@@ -253,7 +258,9 @@ class PostRepository extends CrudRepository {
       },
       offset: skip,
       limit: take,
-      order: Sequelize.literal(`MD5(CONCAT(\`Post\`.\`id\`, '${finalSeed}')) ASC`),
+      order: Sequelize.literal(
+        `MD5(CONCAT(\`Post\`.\`id\`, '${finalSeed}')) ASC`
+      ),
     });
 
     return {
@@ -262,7 +269,6 @@ class PostRepository extends CrudRepository {
       seed: finalSeed,
     };
   }
-
 
   async getSinglePost(userId, postId) {
     const baseQuery = this.#buildBasePostQuery(userId);

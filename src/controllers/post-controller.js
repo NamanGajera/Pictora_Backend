@@ -59,13 +59,15 @@ class PostController {
         filterUserId: req.body.userId,
         skip: req.body.skip,
         take: req.body.take,
+        seedData: req.body.seed,
       });
       SuccessResponse.data = response.posts;
       SuccessResponse.message = Messages.FETCHED_SUCCESS;
       const totalData = response.total;
+      const seed = response.seed;
       return res
         .status(STATUS_CODE.OK)
-        .json({ ...SuccessResponse, total: totalData });
+        .json({ ...SuccessResponse, total: totalData, seed });
     } catch (error) {
       ErrorResponse.message = error.message;
       ErrorResponse.statusCode = error.statusCode;
@@ -90,7 +92,7 @@ class PostController {
       const seed = response.seed;
       return res
         .status(STATUS_CODE.OK)
-        .json({ ...SuccessResponse, total: totalData, seed, });
+        .json({ ...SuccessResponse, total: totalData, seed });
     } catch (error) {
       ErrorResponse.message = error.message;
       ErrorResponse.statusCode = error.statusCode;
