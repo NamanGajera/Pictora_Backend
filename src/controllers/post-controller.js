@@ -77,6 +77,29 @@ class PostController {
     }
   }
 
+  async getUserPost(req, res) {
+    try {
+      const response = await PostService.getUserPost({
+        userId: req.user.id,
+        filterUserId: req.body.userId,
+        skip: req.body.skip,
+        take: req.body.take,
+      });
+      SuccessResponse.data = response.posts;
+      SuccessResponse.message = Messages.FETCHED_SUCCESS;
+      const totalData = response.total;
+      return res
+        .status(STATUS_CODE.OK)
+        .json({ ...SuccessResponse, total: totalData });
+    } catch (error) {
+      ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
+      return res
+        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .json(ErrorResponse);
+    }
+  }
+
   async getAllReel(req, res) {
     try {
       const response = await PostService.getAllReels({
@@ -198,6 +221,7 @@ class PostController {
         .json(ErrorResponse);
     }
   }
+
   async togglePostArchive(req, res) {
     try {
       const response = await PostService.togglePostArchive({
@@ -214,6 +238,24 @@ class PostController {
         .json(ErrorResponse);
     }
   }
+
+  async toggleRePost(req, res) {
+    try {
+      const response = await PostService.toggleRePost({
+        userId: req.user.id,
+        postId: req.body.postId,
+        isRepost: req.body.isRepost,
+      });
+      return res.status(STATUS_CODE.OK).json(response);
+    } catch (error) {
+      ErrorResponse.message = error.message;
+      ErrorResponse.statusCode = error.statusCode;
+      return res
+        .status(error.statusCode || STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .json(ErrorResponse);
+    }
+  }
+
   async deletePost(req, res) {
     try {
       await PostService.deletePost({

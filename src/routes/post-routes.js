@@ -15,6 +15,9 @@ router.post(
   PostController.createPost
 );
 router.post("/", authenticate, PostController.getAllPosts);
+
+router.post("/user-post", authenticate, PostController.getUserPost);
+
 router.get("/:id", authenticate, PostController.getPost);
 
 router.post(
@@ -49,5 +52,12 @@ router.post("/archived-post", authenticate, PostController.getArchivedPosts);
 router.delete("/:postId", authenticate, PostController.deletePost);
 
 router.post("/reels", authenticate, PostController.getAllReel);
+
+router.post(
+  "/repost",
+  authenticate,
+  PostMiddleware.validateRePostRequest,
+  PostController.toggleRePost
+);
 
 module.exports = router;

@@ -42,6 +42,10 @@ module.exports = (sequelize, DataTypes) => {
           isPinned: true,
         },
       });
+      Post.hasMany(models.Repost, {
+        foreignKey: "postId",
+        onDelete: "CASCADE",
+      });
     }
   }
   Post.init(

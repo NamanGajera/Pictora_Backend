@@ -8,6 +8,7 @@ const {
   UserCount,
   UserProfile,
   sequelize,
+  Repost,
 } = require("../models");
 const { Sequelize } = require("sequelize");
 const { Enums, Messages } = require("../utils/common");
@@ -22,6 +23,19 @@ class PostRepository extends CrudRepository {
   constructor() {
     super(Post);
   }
+
+  postAttributes = [
+    "id",
+    "userId",
+    "caption",
+    "likeCount",
+    "repostCount",
+    "commentCount",
+    "shareCount",
+    "saveCount",
+    "createdAt",
+    "updatedAt",
+  ];
 
   async createPost(data, transaction) {
     const post = await Post.create(data, { transaction });
@@ -106,9 +120,11 @@ class PostRepository extends CrudRepository {
       ],
       attributes: {
         include: [
+          ...this.postAttributes,
           this.#buildExistsAttribute("PostLikes", userId, "isLiked"),
           this.#buildExistsAttribute("PostSaves", userId, "isSaved"),
           this.#buildExistsAttribute("PostArchives", userId, "isArchived"),
+          this.#buildExistsAttribute("Reposts", userId, "isRepost"),
         ],
       },
     };
@@ -142,6 +158,7 @@ class PostRepository extends CrudRepository {
       isLiked: Boolean(data.isLiked),
       isSaved: Boolean(data.isSaved),
       isArchived: Boolean(data.isArchived),
+      isRepost: Boolean(data.isRepost),
       userData: data.userData
         ? {
             ...data.userData,
@@ -153,9 +170,31 @@ class PostRepository extends CrudRepository {
   }
 
   async getAllPosts(userId, filter, seed, { skip = 0, take = 10 } = {}) {
-    console.log("Messages ==>>", seed);
     const finalSeed = seed || Math.floor(Math.random() * 100000);
 
+    const baseQuery = this.#buildBasePostQuery(userId);
+
+    const { count, rows: posts } = await Post.findAndCountAll({
+      ...baseQuery,
+      distinct: true,
+      where: {
+        ...filter,
+      },
+      offset: skip,
+      limit: take,
+      // attributes: this.postAttributes,
+      order: Sequelize.literal(
+        `MD5(CONCAT(\`Post\`.\`id\`, '${finalSeed}')) ASC`
+      ),
+    });
+
+    return {
+      posts: this.#formatPostResponse(posts),
+      total: count,
+      seed: finalSeed,
+    };
+  }
+  async getUserPost(userId, filter, { skip = 0, take = 10 } = {}) {
     const baseQuery = this.#buildBasePostQuery(userId);
 
     const { count, rows: posts } = await Post.findAndCountAll({
@@ -176,15 +215,12 @@ class PostRepository extends CrudRepository {
       },
       offset: skip,
       limit: take,
-      order: Sequelize.literal(
-        `MD5(CONCAT(\`Post\`.\`id\`, '${finalSeed}')) ASC`
-      ),
+      order: [["createdAt", "DESC"]],
     });
 
     return {
       posts: this.#formatPostResponse(posts),
       total: count,
-      seed: finalSeed,
     };
   }
 
@@ -247,6 +283,7 @@ class PostRepository extends CrudRepository {
       ],
       attributes: {
         include: [
+          ...this.postAttributes,
           this.#buildExistsAttribute("PostLikes", userId, "isLiked"),
           this.#buildExistsAttribute("PostSaves", userId, "isSaved"),
           this.#buildExistsAttribute("PostArchives", userId, "isArchived"),
@@ -505,6 +542,24 @@ class PostRepository extends CrudRepository {
       errorMessages: {
         alreadyAdded: Messages.ALREADY_ARCHIVED,
         notFound: Messages.OPERATION_SUCCESS,
+      },
+    });
+  }
+
+  async toggleRePost({ userId, postId, isRepost }) {
+    return this.#togglePostAssociation({
+      userId,
+      postId,
+      isSet: isRepost,
+      associationModel: Repost,
+      counterColumn: "repostCount",
+      successMessages: {
+        added: Messages.REPOST_SUCCESS,
+        removed: Messages.REPOST_UNDO_SUCCESS,
+      },
+      errorMessages: {
+        alreadyAdded: Messages.REPOST_ALREADY_EXISTS,
+        notFound: Messages.POST_NOT_FOUND,
       },
     });
   }

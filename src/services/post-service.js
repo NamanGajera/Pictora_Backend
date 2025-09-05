@@ -119,6 +119,27 @@ class PostService {
       this.#handleError(error);
     }
   }
+  async getUserPost(data) {
+    try {
+      const { userId, filterUserId, skip = 0, take = 10 } = data;
+
+      const filterData = {};
+      if (filterUserId) {
+        filterData.userId = filterUserId;
+      }
+      const { posts, total } = await postRepository.getUserPost(
+        userId,
+        filterData,
+        { skip: parseInt(skip), take: parseInt(take) }
+      );
+      return {
+        posts,
+        total,
+      };
+    } catch (error) {
+      this.#handleError(error);
+    }
+  }
 
   async getAllReels(data) {
     try {
@@ -168,6 +189,7 @@ class PostService {
       this.#handleError(error);
     }
   }
+
   async togglePostSave(data) {
     const { userId, postId, isSaved } = data;
     try {
@@ -182,6 +204,7 @@ class PostService {
       this.#handleError(error);
     }
   }
+
   async togglePostArchive(data) {
     const { postId, userId } = data;
     try {
@@ -194,6 +217,21 @@ class PostService {
         throw new AppError(Messages.ACCESS_DENIED, STATUS_CODE.FORBIDDEN);
       }
       const response = await postRepository.togglePostArchive(data);
+      return response;
+    } catch (error) {
+      this.#handleError(error);
+    }
+  }
+
+  async toggleRePost(data) {
+    const { userId, postId, isRepost } = data;
+    try {
+      const post = await postRepository.findOne({ id: postId });
+
+      if (!post) {
+        throw new AppError(Messages.POST_NOT_FOUND, STATUS_CODE.NOT_FOUND);
+      }
+      const response = await postRepository.toggleRePost(data);
       return response;
     } catch (error) {
       this.#handleError(error);

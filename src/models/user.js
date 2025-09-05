@@ -62,6 +62,11 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "userId",
         as: "counts",
       });
+      User.hasMany(models.Repost, {
+        foreignKey: "userId",
+        onDelete: "CASCADE",
+        as: "rePost",
+      });
     }
   }
 

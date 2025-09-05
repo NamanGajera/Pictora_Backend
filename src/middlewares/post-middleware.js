@@ -52,6 +52,23 @@ class PostMiddleware {
     }
     next();
   }
+
+  validateRePostRequest(req, res, next) {
+    if (!req.body) {
+      ErrorResponse.message = Messages.REQUIRED_BODY;
+      ErrorResponse.statusCode = STATUS_CODE.BAD_REQUEST;
+      return res.status(STATUS_CODE.BAD_REQUEST).json(ErrorResponse);
+    }
+
+    const requiredFields = ["postId", "isRepost"];
+    for (const field of requiredFields) {
+      if (req.body[field] === undefined || req.body[field] === null) {
+        ErrorResponse.message = Messages.REQUIRED_FIELD(field);
+        return res.status(STATUS_CODE.BAD_REQUEST).json(ErrorResponse);
+      }
+    }
+    next();
+  }
 }
 
 module.exports = new PostMiddleware();
