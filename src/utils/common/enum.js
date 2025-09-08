@@ -29,4 +29,14 @@ module.exports = {
     ACCEPTED: "Accepted",
     REJECTED: "Rejected",
   },
+  CONVERSATION_TYPE: {
+    PRIVATE: "Private",
+    GROUP: "Group"
+  },
+  CONVERSATION_MESSAGE_ATTACHMENT_TYPE: {
+    IMAGE: "Image",
+    VIDEO: "Video",
+    AUDIO: "Audio",
+    LINK: "Link",
+  }
 };

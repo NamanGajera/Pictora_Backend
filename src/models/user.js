@@ -67,6 +67,14 @@ module.exports = (sequelize, DataTypes) => {
         onDelete: "CASCADE",
         as: "rePost",
       });
+      User.hasMany(models.ConversationMember, {
+        foreignKey: "userId",
+        as: "conversations",
+      });
+      User.hasMany(models.Message, {
+        foreignKey: "senderId",
+        as: "sentMessages",
+      });
     }
   }
 
