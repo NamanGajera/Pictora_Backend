@@ -3,7 +3,7 @@ const router = express.Router();
 const { UserController } = require("../controllers");
 const { UserMiddleware } = require("../middlewares");
 const authenticate = require("../middlewares/auth-middleware");
-const { fileUpload } = require("../middlewares/flie-upload-middleware");
+const { fileUpload } = require("../middlewares/file-upload-middleware");
 
 router.get(
   "/follow/requests",

@@ -30,6 +30,18 @@ module.exports = (sequelize, DataTypes) => {
         as: "attachments",
         onDelete: "CASCADE",
       });
+
+      ConversationMessage.belongsTo(models.ConversationMessage, {
+        foreignKey: "replyToMessageId",
+        as: "repliedMessageData",
+        onDelete: "SET NULL",
+      });
+
+      ConversationMessage.hasMany(models.ConversationMessage, {
+        foreignKey: "replyToMessageId",
+        as: "replies",
+        onDelete: "SET NULL",
+      });
     }
   }
   ConversationMessage.init({
@@ -57,7 +69,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     replyToMessageId: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
     }
   }, {
     sequelize,

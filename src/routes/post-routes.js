@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { PostController } = require("../controllers");
-const { fileUpload } = require("../middlewares/flie-upload-middleware");
+const { fileUpload } = require("../middlewares/file-upload-middleware");
 const { PostMiddleware } = require("../middlewares");
 const authenticate = require("../middlewares/auth-middleware");
 

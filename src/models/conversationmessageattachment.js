@@ -52,7 +52,6 @@ module.exports = (sequelize, DataTypes) => {
     type: {
       type: DataTypes.ENUM,
       values: Object.values(CONVERSATION_MESSAGE_ATTACHMENT_TYPE),
-
     }
   }, {
     sequelize,

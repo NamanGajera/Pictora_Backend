@@ -138,6 +138,16 @@ const Messages = {
   REQUEST_REJECTED: "Follow request rejected",
   REQUEST_NOT_FOUND: "Follow request not found",
   REQUEST_CANCELED: "Follow request canceled.",
+
+
+  /// Conversation Related
+  CONVERSATION_CREATED: "Conversation created successfully",
+  CONVERSATION_NOT_FOUND: "Conversation not found",
+  MESSAGE_SENT: "Message sent successfully",
+  MESSAGE_DELETED: "Message deleted successfully",
+  NO_CONVERSATIONS: "No conversations found",
+  NO_MESSAGES: "No messages found",
+  CONVERSATION_EXISTS: "Conversation between these users already exists",
 };
 
 module.exports = Messages;

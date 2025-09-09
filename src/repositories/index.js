@@ -4,4 +4,5 @@ module.exports = {
   PostRepository: require("./post-repository"),
   PostMediaRepository: require("./post-media-repository"),
   CommentRepository: require("./comment-repository"),
+  ConversationRepository: require("./conversation-repository"),
 };

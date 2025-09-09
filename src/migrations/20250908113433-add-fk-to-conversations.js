@@ -43,7 +43,7 @@ module.exports = {
       type: 'foreign key',
       name: 'fk_conversation_messages_replyToMessageId',
       references: {
-        table: 'Conversations',
+        table: 'ConversationMessages',
         field: 'id',
       },
       onDelete: 'SET NULL',

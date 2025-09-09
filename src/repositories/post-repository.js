@@ -161,10 +161,10 @@ class PostRepository extends CrudRepository {
       isRepost: Boolean(data.isRepost),
       userData: data.userData
         ? {
-            ...data.userData,
-            isFollowed: Boolean(Number(data.userData.isFollowed)),
-            showFollowBack: Boolean(Number(data.userData.showFollowBack)),
-          }
+          ...data.userData,
+          isFollowed: Boolean(Number(data.userData.isFollowed)),
+          showFollowBack: Boolean(Number(data.userData.showFollowBack)),
+        }
         : null,
     };
   }
@@ -307,12 +307,13 @@ class PostRepository extends CrudRepository {
     };
   }
 
-  async getSinglePost(userId, postId) {
+  async getSinglePost(userId, postId, transaction) {
     const baseQuery = this.#buildBasePostQuery(userId);
 
     const post = await Post.findOne({
       ...baseQuery,
       where: { id: postId },
+      transaction,
     });
 
     if (!post) {

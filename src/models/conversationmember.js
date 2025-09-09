@@ -20,7 +20,7 @@ module.exports = (sequelize, DataTypes) => {
         as: "userData",
         onDelete: "CASCADE",
       });
-      ConversationMember.belongsTo(models.Message, {
+      ConversationMember.belongsTo(models.ConversationMessage, {
         foreignKey: "lastReadMessageId",
         as: "lastReadMessageData",
         onDelete: "CASCADE",
