@@ -548,21 +548,33 @@ class PostRepository extends CrudRepository {
   }
 
   async toggleRePost({ userId, postId, isRepost }) {
-    return this.#togglePostAssociation({
-      userId,
-      postId,
-      isSet: isRepost,
-      associationModel: Repost,
-      counterColumn: "repostCount",
-      successMessages: {
-        added: Messages.REPOST_SUCCESS,
-        removed: Messages.REPOST_UNDO_SUCCESS,
-      },
-      errorMessages: {
-        alreadyAdded: Messages.REPOST_ALREADY_EXISTS,
-        notFound: Messages.POST_NOT_FOUND,
-      },
-    });
+    try {
+      const post = await Post.findOne({ where: { id: postId } });
+
+      if (userId === post.userId) {
+        throw new AppError(
+          Messages.CANNOT_REPOST_OWN_POST,
+          STATUS_CODE.FORBIDDEN
+        );
+      }
+      return this.#togglePostAssociation({
+        userId,
+        postId,
+        isSet: isRepost,
+        associationModel: Repost,
+        counterColumn: "repostCount",
+        successMessages: {
+          added: Messages.REPOST_SUCCESS,
+          removed: Messages.REPOST_UNDO_SUCCESS,
+        },
+        errorMessages: {
+          alreadyAdded: Messages.REPOST_ALREADY_EXISTS,
+          notFound: Messages.POST_NOT_FOUND,
+        },
+      });
+    } catch (error) {
+      throw error;
+    }
   }
 }
 
