@@ -2,12 +2,22 @@ const db = require("../models");
 const { ConversationRepository } = require("../repositories");
 const { Messages, Enums } = require("../utils/common");
 const { BaseError } = require("sequelize");
+const { getIO } = require("../config/socket");
+const { getRedis } = require("../config/redis");
 const AppError = require("../utils/errors/app-error");
 
 const conversationRepository = new ConversationRepository();
 const { STATUS_CODE } = Enums;
 
 class ConversationService {
+    get io() {
+        return getIO();
+    }
+
+    get redis() {
+        return getRedis();
+    }
+
     #handleError(error) {
         console.log("Error -->", error);
         if (error instanceof AppError) {
@@ -53,6 +63,7 @@ class ConversationService {
         try {
             const message = await conversationRepository.createMessage(data, transaction);
             await transaction.commit();
+
             return message;
         } catch (error) {
             await transaction.rollback();

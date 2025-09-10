@@ -3,17 +3,20 @@ const {
     ConversationMember,
     ConversationMessage,
     ConversationMessageAttachment,
+    ConversationMessageRead,
     User,
     UserProfile,
     Post,
     PostMedia,
     sequelize,
 } = require("../models");
-const { Sequelize } = require("sequelize");
+const { Sequelize, where } = require("sequelize");
 const CloudinaryService = require("../services/cloudinary-service");
 const { getFileType } = require("../utils/helpers/getFileType");
 const CrudRepository = require("./crud-repository");
 const PostRepository = require("./post-repository");
+const { getIO } = require("../config/socket");
+const { getRedis } = require("../config/redis");
 
 const { Enums, Messages } = require("../utils/common");
 const { CONVERSATION_MESSAGE_ATTACHMENT_TYPE } = Enums;
@@ -22,6 +25,15 @@ const AppError = require("../utils/errors/app-error");
 const { Op } = require("sequelize");
 
 class ConversationRepository {
+
+    get io() {
+        return getIO();
+    }
+
+    get redis() {
+        return getRedis();
+    }
+
     postAttributes = [
         "id",
         "userId",
@@ -148,6 +160,16 @@ class ConversationRepository {
         };
     }
 
+    #getReadStatusIncludeConfig(userId) {
+        return {
+            model: ConversationMessageRead,
+            as: "reads",
+            where: { userId },
+            required: false,
+            attributes: ["id", "readAt"],
+        };
+    }
+
     async createConversation(data, transaction) {
         try {
             const { initiatorUserId, recipientUserId } = data;
@@ -214,7 +236,7 @@ class ConversationRepository {
                         model: ConversationMember,
                         as: "members",
                         where: { userId: { [Op.ne]: userId } },
-                        attributes: ["userId"],
+                        // attributes: ["userId"],
                         include: [
                             {
                                 model: User,
@@ -233,7 +255,9 @@ class ConversationRepository {
                     {
                         model: ConversationMessage,
                         as: "lastMessageData",
-                        attributes: ["id", "message", "createdAt"],
+                        include: [
+                            this.#getAttachmentsIncludeConfig(),
+                        ],
                     },
                 ],
                 order: [["updatedAt", "DESC"]],
@@ -244,7 +268,7 @@ class ConversationRepository {
                 type: conv.type,
                 title: conv.title,
                 lastMessage: conv.lastMessageData,
-                otherUser: conv.members[0]?.userData || null,
+                otherUser: conv.members || null,
                 updatedAt: conv.updatedAt,
             }));
         } catch (error) {
@@ -264,6 +288,40 @@ class ConversationRepository {
                 thumbnailFiles,
                 transaction
             );
+
+            await Conversation.update({
+                lastMessageId: messageData.id,
+            }, {
+                where: { id: conversationId },
+                transaction
+            });
+
+            const receiverUserData = await ConversationMember.findOne(
+                { where: { conversationId, userId: { [Op.ne]: senderId } }, transaction, }
+            );
+
+            const isActive = await this.redis.sismember(
+                `user:${receiverUserData.userId}:active_conversations`,
+                conversationId
+            );
+
+            if (isActive) {
+                await receiverUserData.update(
+                    {
+                        lastReadMessageId: messageData.id,
+                        unreadCount: 0,
+                        lastReadAt: new Date().toISOString(),
+                    },
+                    { transaction }
+                );
+                console.log("✅ Receiver User is active in this conversation");
+            } else {
+                await receiverUserData.increment(
+                    { unreadCount: 1 },
+                    { transaction }
+                );
+                console.log("❌ Receiver User is not active in this conversation");
+            }
 
             let postData = null;
             if (postId) {
@@ -290,12 +348,18 @@ class ConversationRepository {
                 });
             }
 
-            return {
+            const messageObj = {
                 ...messageData.toJSON(),
                 attachments,
                 postData,
                 repliedMessageData
-            };
+            }
+
+            this.io.to(`conversation:${data.conversationId}`).emit('new_message', {
+                data: messageObj
+            });
+
+            return messageObj;
         } catch (error) {
             throw error;
         }
@@ -372,6 +436,16 @@ class ConversationRepository {
             };
         } catch (error) {
             throw error;
+        }
+    }
+
+    async isUserActiveInConversation(userId, conversationId) {
+        try {
+            const isActive = await this.redis.sismember(`user:${userId}:active_conversations`, conversationId,);
+            return isActive === 1;
+        } catch (error) {
+            console.error('Error checking user activity:', error);
+            return false;
         }
     }
 }

@@ -75,6 +75,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "senderId",
         as: "sentMessages",
       });
+      User.hasMany(models.ConversationMessageRead, {
+        foreignKey: "userId",
+        as: "readMessages",
+      });
     }
   }
 

@@ -1,14 +1,17 @@
-// src/config/socket.js
+// socket.js
 const { Server } = require("socket.io");
 const { createAdapter } = require("@socket.io/redis-adapter");
-const { getPubSub } = require("./redis");
+const { getPubSub, getRedis } = require("./redis");
+const { createSocketService } = require("../services/socket-service");
 
 let io = null;
+let socketService = null;
 
 function initSocket(server) {
     if (io) return io;
 
     const { pubClient, subClient } = getPubSub();
+    const redisClient = getRedis();
 
     io = new Server(server, {
         cors: {
@@ -22,6 +25,10 @@ function initSocket(server) {
 
     io.adapter(createAdapter(pubClient, subClient));
 
+    // Initialize socket service with Redis dependency
+    socketService = createSocketService(redisClient);
+    socketService.initialize(io);
+
     console.log("🔌 Socket.IO initialized with Redis adapter");
 
     return io;
@@ -32,4 +39,9 @@ function getIO() {
     return io;
 }
 
-module.exports = { initSocket, getIO };
+function getSocketService() {
+    if (!socketService) throw new Error("Socket service not initialized!");
+    return socketService;
+}
+
+module.exports = { initSocket, getIO, getSocketService };

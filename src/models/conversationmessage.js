@@ -42,6 +42,13 @@ module.exports = (sequelize, DataTypes) => {
         as: "replies",
         onDelete: "SET NULL",
       });
+
+      ConversationMessage.hasMany(models.ConversationMessageRead, {
+        foreignKey: "messageId",
+        as: "reads",
+        onDelete: "CASCADE",
+      });
+
     }
   }
   ConversationMessage.init({
