@@ -89,9 +89,11 @@ class SocketService {
 
   async handleConversationEvents(socket) {
     // Join a specific conversation
-    this.io.on("join_conversation", async (conversationId) => {
+    socket.on("join_conversation", async (data) => {
       try {
-        console.log("logg==>>>>", conversationId);
+        console.log("logg==>>>>", data);
+
+        const { conversationId } = data;
         // Check if user is a member of this conversation
         const member = await ConversationMember.findOne({
           where: {
@@ -105,6 +107,15 @@ class SocketService {
           await this.redis.sadd(
             `user:${socket.userId}:active_conversations`,
             conversationId
+          );
+
+
+
+          await member.update(
+            {
+              unreadCount: 0,
+              lastReadAt: new Date().toISOString(),
+            }
           );
 
           this.io.emit("conversation_joined", { conversationId });
@@ -123,7 +134,33 @@ class SocketService {
     });
 
     // Leave a conversation
-    this.io.on("leave_conversation", async (conversationId) => {
+    socket.on("leave_conversation", async (data) => {
+      console.log("logg==>>>>", data);
+
+      const { conversationId } = data;
+      const member = await ConversationMember.findOne({
+        where: {
+          conversationId,
+          userId: socket.userId,
+        },
+      });
+      const lastMessage = await ConversationMessage.findOne({
+        where: { conversationId: conversationId },
+        order: [['createdAt', 'DESC']]
+      });
+
+      console.log("Member found:", member);
+      console.log("Last Message", lastMessage);
+
+      if (member && lastMessage) {
+        await member.update(
+          {
+            lastReadMessageId: lastMessage.id,
+            lastReadAt: new Date().toISOString(),
+          }
+        );
+      }
+
       socket.leave(`conversation:${conversationId}`);
       await this.redis.srem(
         `user:${socket.userId}:active_conversations`,
@@ -135,6 +172,7 @@ class SocketService {
 
   handleTypingEvents(socket) {
     socket.on("typing_start", (data) => {
+      console.log("Typing event data:", data);
       const { conversationId } = data;
       socket.to(`conversation:${conversationId}`).emit("user_typing", {
         userId: socket.userId,
@@ -145,6 +183,7 @@ class SocketService {
 
     socket.on("typing_stop", (data) => {
       const { conversationId } = data;
+      console.log("Typing stop event data:", data);
       socket.to(`conversation:${conversationId}`).emit("user_typing", {
         userId: socket.userId,
         conversationId,

@@ -20,7 +20,7 @@ module.exports = {
       type: 'foreign key',
       name: 'fk_conversations_lastReadMessageId',
       references: {
-        table: 'ConversationMembers',
+        table: 'ConversationMessages',
         field: 'id',
       },
       onDelete: 'SET NULL',

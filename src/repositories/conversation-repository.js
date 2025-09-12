@@ -321,10 +321,13 @@ class ConversationRepository {
         transaction,
       });
 
+
       const isActive = await this.redis.sismember(
         `user:${receiverUserData.userId}:active_conversations`,
         conversationId
       );
+
+      console.log("Is Receiver Active in this conversation:", isActive, receiverUserData);
 
       if (isActive) {
         await receiverUserData.update(
