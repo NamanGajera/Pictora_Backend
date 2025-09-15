@@ -329,13 +329,16 @@ class ConversationRepository {
         transaction,
       });
 
-
       const isActive = await this.redis.sismember(
         `user:${receiverUserData.userId}:active_conversations`,
         conversationId
       );
 
-      console.log("Is Receiver Active in this conversation:", isActive, receiverUserData);
+      console.log(
+        "Is Receiver Active in this conversation:",
+        isActive,
+        receiverUserData
+      );
 
       if (isActive) {
         await receiverUserData.update(
@@ -465,7 +468,7 @@ class ConversationRepository {
           ],
           offset: skip,
           limit: take,
-          order: [["createdAt", "ASC"]],
+          order: [["createdAt", "DESC"]],
         });
 
       const transformedMessages = messages.map((message) => {
