@@ -47,6 +47,21 @@ class SocketService {
     socket.join(`user:${socket.userId}`);
 
     await this.updateUserPresence(socket.userId, true);
+    const allKeys = await this.redis.keys("user:*:presence");
+    const onlineUsers = [];
+
+    for (const key of allKeys) {
+      const userId = key.split(":")[1];
+      const presence = await this.redis.hgetall(key);
+
+      if (presence.status === "online") {
+        onlineUsers.push(userId);
+      }
+    }
+    console.log("Online Users:", onlineUsers);
+
+    this.io.emit("online_users", onlineUsers);
+
     socket.broadcast.emit("user_presence", {
       userId: socket.userId,
       status: true,
@@ -109,8 +124,6 @@ class SocketService {
             conversationId
           );
 
-
-
           await member.update(
             {
               unreadCount: 0,
@@ -148,9 +161,6 @@ class SocketService {
         where: { conversationId: conversationId },
         order: [['createdAt', 'DESC']]
       });
-
-      console.log("Member found:", member);
-      console.log("Last Message", lastMessage);
 
       if (member && lastMessage) {
         await member.update(
@@ -204,16 +214,8 @@ class SocketService {
       );
 
       if (activeSockets === 0) {
-        await this.redis.hset(
-          `user:${socket.userId}:presence`,
-          "status",
-          "offline"
-        );
-        await this.redis.hset(
-          `user:${socket.userId}:presence`,
-          "lastSeen",
-          new Date().toISOString()
-        );
+        await this.redis.del(`user:${socket.userId}:presence`);
+        await this.redis.del(`user:${socket.userId}:sockets`);
       }
 
       socket.broadcast.emit("user_presence", {

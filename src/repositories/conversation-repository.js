@@ -262,6 +262,13 @@ class ConversationRepository {
             ],
           },
           {
+            model: ConversationMember,
+            as: "loginUserMember",
+            where: { userId },
+            attributes: ["unreadCount"],
+            required: false,
+          },
+          {
             model: ConversationMessage,
             as: "lastMessageData",
             include: [this.#getAttachmentsIncludeConfig()],
@@ -274,6 +281,7 @@ class ConversationRepository {
         id: conv.id,
         type: conv.type,
         title: conv.title,
+        unreadCount: conv.loginUserMember?.[0]?.unreadCount ?? 0,
         lastMessage: conv.lastMessageData,
         otherUser: conv.members || null,
         updatedAt: conv.updatedAt,

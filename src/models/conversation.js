@@ -23,11 +23,18 @@ module.exports = (sequelize, DataTypes) => {
         as: "messages",
         onDelete: "CASCADE",
       });
+      Conversation.hasMany(models.ConversationMember, {
+        foreignKey: "conversationId",
+        as: "loginUserMember",
+        onDelete: "CASCADE",
+      });
       Conversation.belongsTo(models.ConversationMessage, {
         foreignKey: "lastMessageId",
         as: "lastMessageData",
         onDelete: "SET NULL",
       });
+
+
     }
   }
   Conversation.init({
