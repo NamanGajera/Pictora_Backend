@@ -62,7 +62,6 @@ class ConversationRepository {
   #transformPostData(post) {
     if (!post) return post;
 
-    // Convert 0/1 to boolean
     const booleanFields = ["isLiked", "isSaved", "isArchived", "isRepost"];
     booleanFields.forEach((field) => {
       if (post[field] !== undefined) {
@@ -471,10 +470,13 @@ class ConversationRepository {
           order: [["createdAt", "DESC"]],
         });
 
-      const transformedMessages = messages.map((message) => {
+      const transformedMessages = messages.map((msg) => {
+        const message = msg.get({ plain: true });
+
         if (message.postData) {
           message.postData = this.#transformPostData(message.postData);
         }
+
         return message;
       });
 

@@ -224,9 +224,8 @@ class UserService {
   }
 
   async searchUsers(data) {
-    const { query } = data;
     try {
-      const users = await userRepository.searchUsers(query);
+      const users = await userRepository.searchUsers(data);
       return users;
     } catch (error) {
       this.#handleError(error);

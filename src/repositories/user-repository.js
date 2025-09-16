@@ -47,13 +47,13 @@ class UserRepository extends CrudRepository {
 
     const existingRequest = targetUser.profile.isPrivate
       ? await FollowRequest.findOne({
-          where: {
-            requesterId: followerId,
-            targetId: followingId,
-            status: FOLLOW_REQUEST_STATUS.PENDING,
-          },
-          transaction,
-        })
+        where: {
+          requesterId: followerId,
+          targetId: followingId,
+          status: FOLLOW_REQUEST_STATUS.PENDING,
+        },
+        transaction,
+      })
       : null;
 
     if (shouldFollow) {
@@ -563,20 +563,21 @@ class UserRepository extends CrudRepository {
     }
   }
 
-  async searchUsers(query) {
+  async searchUsers(data) {
+    const { query, isPrivate } = data;
     try {
-      if (!query) {
-        throw new AppError(
-          Messages.REQUIRED_FIELD("query"),
-          STATUS_CODE.BAD_REQUEST
-        );
-      }
+      // if (!query) {
+      //   throw new AppError(
+      //     Messages.REQUIRED_FIELD("query"),
+      //     STATUS_CODE.BAD_REQUEST
+      //   );
+      // }
 
-      let conditions;
+      let whereConditions;
 
       if (query.includes(" ")) {
         const terms = query.trim().split(/\s+/);
-        conditions = {
+        whereConditions = {
           [Op.and]: terms.map((word) => ({
             [Op.or]: [
               { userName: { [Op.like]: `%${word}%` } },
@@ -585,7 +586,7 @@ class UserRepository extends CrudRepository {
           })),
         };
       } else {
-        conditions = {
+        whereConditions = {
           [Op.or]: [
             { userName: { [Op.like]: `%${query.trim()}%` } },
             { fullName: { [Op.like]: `%${query.trim()}%` } },
@@ -593,16 +594,20 @@ class UserRepository extends CrudRepository {
         };
       }
 
+      const includeProfile = {
+        model: UserProfile,
+        as: "profile",
+        attributes: ["profilePicture", "isPrivate"],
+      };
+
+      if (isPrivate) {
+        includeProfile.where = { isPrivate };
+      }
+
       const users = await User.findAll({
-        where: conditions,
+        where: whereConditions,
         attributes: ["id", "fullName", "userName"],
-        include: [
-          {
-            model: UserProfile,
-            as: "profile",
-            attributes: ["profilePicture"],
-          },
-        ],
+        include: [includeProfile],
       });
 
       return users;

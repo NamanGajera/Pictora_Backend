@@ -131,7 +131,7 @@ class SocketService {
             }
           );
 
-          this.io.emit("conversation_joined", { conversationId });
+          this.io.emit("conversation_joined", { conversationId, userId: socket.userId, });
 
           // Mark messages as read when joining
           //   await this.markMessagesAsRead(conversationId, socket.userId);
@@ -176,7 +176,7 @@ class SocketService {
         `user:${socket.userId}:active_conversations`,
         conversationId
       );
-      this.io.emit("conversation_left", { conversationId });
+      this.io.emit("conversation_left", { conversationId, userId: socket.userId, });
     });
   }
 

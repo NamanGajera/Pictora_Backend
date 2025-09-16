@@ -225,7 +225,8 @@ class UserController {
   async searchUsers(req, res) {
     try {
       const users = await userService.searchUsers({
-        query: req.body.query,
+        query: req.body.query || '',
+        isPrivate: req.body.isPrivate,
       });
       SuccessResponse.data = users;
       SuccessResponse.message = Messages.FETCHED_SUCCESS;
