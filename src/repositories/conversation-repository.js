@@ -23,6 +23,7 @@ const { CONVERSATION_MESSAGE_ATTACHMENT_TYPE } = Enums;
 const postRepository = new PostRepository();
 const AppError = require("../utils/errors/app-error");
 const { Op } = require("sequelize");
+const { STATUS_CODE } = require("../utils/common/enum");
 
 class ConversationRepository {
   get io() {
@@ -177,47 +178,105 @@ class ConversationRepository {
 
   async createConversation(data, transaction) {
     try {
-      const { initiatorUserId, recipientUserId } = data;
+      const {
+        initiatorUserId,
+        recipientUserId,
+        members,
+        type,
+        title,
+        groupImageFile,
+      } = data;
 
-      const existingConversation = await Conversation.findOne({
-        where: { type: Enums.CONVERSATION_TYPE.PRIVATE },
-        include: [
-          {
-            model: ConversationMember,
-            as: "members",
-            where: { userId: initiatorUserId },
-            attributes: [],
-          },
-          {
-            model: ConversationMember,
-            as: "members",
-            where: { userId: recipientUserId },
-            attributes: [],
-          },
-        ],
-        transaction,
-      });
+      if (type === Enums.CONVERSATION_TYPE.PRIVATE) {
+        const existingConversation = await Conversation.findOne({
+          where: { type: Enums.CONVERSATION_TYPE.PRIVATE },
+          include: [
+            {
+              model: ConversationMember,
+              as: "members",
+              where: { userId: initiatorUserId },
+              attributes: [],
+            },
+            {
+              model: ConversationMember,
+              as: "members",
+              where: { userId: recipientUserId },
+              attributes: [],
+            },
+          ],
+          transaction,
+        });
 
-      if (existingConversation) {
-        throw new AppError(
-          Messages.CONVERSATION_EXISTS,
-          Enums.STATUS_CODE.BAD_REQUEST
+        if (existingConversation) {
+          throw new AppError(
+            Messages.CONVERSATION_EXISTS,
+            Enums.STATUS_CODE.BAD_REQUEST
+          );
+        }
+
+        const newConversation = await Conversation.create(
+          { type, title: null },
+          { transaction }
         );
+
+        const conversationMembers = [
+          { conversationId: newConversation.id, userId: initiatorUserId },
+          { conversationId: newConversation.id, userId: recipientUserId },
+        ];
+
+        await ConversationMember.bulkCreate(conversationMembers, {
+          transaction,
+        });
+        return newConversation;
       }
 
-      const newConversation = await Conversation.create(
-        { type: Enums.CONVERSATION_TYPE.PRIVATE },
-        { transaction }
+      if (type === Enums.CONVERSATION_TYPE.GROUP) {
+        if (!members || members.length < 2) {
+          throw new AppError(
+            Messages.GROUP_HAVE_TWO_MEMBER,
+            STATUS_CODE.BAD_REQUEST
+          );
+        }
+        let groupImageUrl = null;
+        let groupImagePublicId = null;
+
+        if (groupImageFile) {
+          const uploadedImage = await CloudinaryService.uploadBuffer(
+            groupImageFile.buffer,
+            "groupImages"
+          );
+          groupImageUrl = uploadedImage.secure_url;
+          groupImagePublicId = uploadedImage.public_id;
+        }
+        const newConversation = await Conversation.create(
+          {
+            type,
+            title: title || "Untitled Group",
+            metadata: {
+              groupImage: {
+                url: groupImageUrl,
+                publicId: groupImagePublicId,
+              },
+            },
+          },
+          { transaction }
+        );
+
+        const conversationMembers = members.map((userId) => ({
+          conversationId: newConversation.id,
+          userId,
+        }));
+
+        await ConversationMember.bulkCreate(conversationMembers, {
+          transaction,
+        });
+        return newConversation;
+      }
+
+      throw new AppError(
+        Messages.INVALID_CONVERSATION_TYPE,
+        STATUS_CODE.BAD_REQUEST
       );
-
-      const members = [
-        { conversationId: newConversation.id, userId: initiatorUserId },
-        { conversationId: newConversation.id, userId: recipientUserId },
-      ];
-
-      await ConversationMember.bulkCreate(members, { transaction });
-
-      return newConversation;
     } catch (error) {
       throw error;
     }
@@ -244,7 +303,6 @@ class ConversationRepository {
             model: ConversationMember,
             as: "members",
             where: { userId: { [Op.ne]: userId } },
-            // attributes: ["userId"],
             include: [
               {
                 model: User,
@@ -283,6 +341,7 @@ class ConversationRepository {
         unreadCount: conv.loginUserMember?.[0]?.unreadCount ?? 0,
         lastMessage: conv.lastMessageData,
         otherUser: conv.members || null,
+        metadata: conv.metadata,
         updatedAt: conv.updatedAt,
       }));
     } catch (error) {

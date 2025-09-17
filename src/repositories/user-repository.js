@@ -4,6 +4,7 @@ const {
   UserCount,
   Follow,
   FollowRequest,
+  ConversationMember,
   sequelize,
 } = require("../models");
 const CrudRepository = require("./crud-repository");
@@ -47,13 +48,13 @@ class UserRepository extends CrudRepository {
 
     const existingRequest = targetUser.profile.isPrivate
       ? await FollowRequest.findOne({
-        where: {
-          requesterId: followerId,
-          targetId: followingId,
-          status: FOLLOW_REQUEST_STATUS.PENDING,
-        },
-        transaction,
-      })
+          where: {
+            requesterId: followerId,
+            targetId: followingId,
+            status: FOLLOW_REQUEST_STATUS.PENDING,
+          },
+          transaction,
+        })
       : null;
 
     if (shouldFollow) {
@@ -564,7 +565,7 @@ class UserRepository extends CrudRepository {
   }
 
   async searchUsers(data) {
-    const { query, isPrivate } = data;
+    const { query, isPrivate, currentUserId } = data;
     try {
       // if (!query) {
       //   throw new AppError(
@@ -604,10 +605,19 @@ class UserRepository extends CrudRepository {
         includeProfile.where = { isPrivate };
       }
 
+      // const conversationMember
+
       const users = await User.findAll({
         where: whereConditions,
         attributes: ["id", "fullName", "userName"],
-        include: [includeProfile],
+        include: [
+          includeProfile,
+          {
+            model: ConversationMember,
+            as: "conversations",
+            attributes: ["id", "conversationId"],
+          },
+        ],
       });
 
       return users;

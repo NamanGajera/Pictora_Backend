@@ -139,7 +139,6 @@ const Messages = {
   REQUEST_NOT_FOUND: "Follow request not found",
   REQUEST_CANCELED: "Follow request canceled.",
 
-
   /// Conversation Related
   CONVERSATION_CREATED: "Conversation created successfully",
   CONVERSATION_NOT_FOUND: "Conversation not found",
@@ -148,6 +147,10 @@ const Messages = {
   NO_CONVERSATIONS: "No conversations found",
   NO_MESSAGES: "No messages found",
   CONVERSATION_EXISTS: "Conversation between these users already exists",
+  GROUP_HAVE_TWO_MEMBER: "Group must have at least 2 members",
+  INVALID_CONVERSATION_TYPE: "Invalid conversation type",
+  ONLY_ONE_GROUP_IMAGE: "Only one group image is allowed",
+  DUPLICATED_MEMBER_ID: "Duplicate userIds are not allowed in group members",
 };
 
 module.exports = Messages;

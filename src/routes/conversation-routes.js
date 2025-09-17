@@ -8,6 +8,7 @@ const authenticate = require("../middlewares/auth-middleware");
 router.post(
   "/create",
   authenticate,
+  fileUpload.fields([{ name: "groupImage", maxCount: 1 }]),
   ConversationMiddleware.validateCreateConversationRequest,
   ConversationController.createConversation
 );
