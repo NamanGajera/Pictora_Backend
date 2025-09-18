@@ -224,10 +224,36 @@ class ConversationRepository {
           { conversationId: newConversation.id, userId: recipientUserId },
         ];
 
-        await ConversationMember.bulkCreate(conversationMembers, {
+        await ConversationMember.bulkCreate(conversationMembers, { transaction });
+
+        // 🔹 Fetch conversation again with members
+        const conversationWithMembers = await Conversation.findOne({
+          where: { id: newConversation.id },
+          include: [
+            {
+              model: ConversationMember,
+              as: "members",
+              where: { userId: { [Op.ne]: initiatorUserId } },
+              include: [
+                {
+                  model: User,
+                  as: "userData",
+                  attributes: ["id", "userName", "fullName"],
+                  include: [
+                    {
+                      model: UserProfile,
+                      as: "profile",
+                      attributes: ["profilePicture"],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
           transaction,
         });
-        return newConversation;
+
+        return conversationWithMembers;
       }
 
       if (type === Enums.CONVERSATION_TYPE.GROUP) {
@@ -267,10 +293,34 @@ class ConversationRepository {
           userId,
         }));
 
-        await ConversationMember.bulkCreate(conversationMembers, {
+        await ConversationMember.bulkCreate(conversationMembers, { transaction });
+
+        const conversationWithMembers = await Conversation.findOne({
+          where: { id: newConversation.id },
+          include: [
+            {
+              model: ConversationMember,
+              as: "members",
+              include: [
+                {
+                  model: User,
+                  as: "userData",
+                  attributes: ["id", "userName", "fullName"],
+                  include: [
+                    {
+                      model: UserProfile,
+                      as: "profile",
+                      attributes: ["profilePicture"],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
           transaction,
         });
-        return newConversation;
+
+        return conversationWithMembers;
       }
 
       throw new AppError(
@@ -281,6 +331,7 @@ class ConversationRepository {
       throw error;
     }
   }
+
 
   async getAllConversationsForUser(userId) {
     try {
@@ -340,7 +391,7 @@ class ConversationRepository {
         title: conv.title,
         unreadCount: conv.loginUserMember?.[0]?.unreadCount ?? 0,
         lastMessage: conv.lastMessageData,
-        otherUser: conv.members || null,
+        members: conv.members || null,
         metadata: conv.metadata,
         updatedAt: conv.updatedAt,
       }));

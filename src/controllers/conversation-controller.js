@@ -17,6 +17,7 @@ class ConversationController {
         members: req.body?.members || [],
         type: req.body?.type || Enums.CONVERSATION_TYPE.PRIVATE,
         groupImageFile: req.files?.groupImage?.[0] || null,
+        title: req.body.title || "Group",
       };
 
       const response = await ConversationService.createConversation(data);
