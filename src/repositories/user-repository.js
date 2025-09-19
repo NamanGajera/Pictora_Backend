@@ -5,6 +5,7 @@ const {
   Follow,
   FollowRequest,
   ConversationMember,
+  Conversation,
   sequelize,
 } = require("../models");
 const CrudRepository = require("./crud-repository");
@@ -564,16 +565,9 @@ class UserRepository extends CrudRepository {
     }
   }
 
-  async searchUsers(data) {
+  async searchUsers(data, transaction) {
     const { query, isPrivate, currentUserId } = data;
     try {
-      // if (!query) {
-      //   throw new AppError(
-      //     Messages.REQUIRED_FIELD("query"),
-      //     STATUS_CODE.BAD_REQUEST
-      //   );
-      // }
-
       let whereConditions;
 
       if (query.includes(" ")) {
@@ -605,22 +599,34 @@ class UserRepository extends CrudRepository {
         includeProfile.where = { isPrivate };
       }
 
-      // const conversationMember
-
       const users = await User.findAll({
         where: whereConditions,
-        attributes: ["id", "fullName", "userName"],
-        include: [
-          includeProfile,
-          {
-            model: ConversationMember,
-            as: "conversations",
-            attributes: ["id", "conversationId"],
-          },
+        attributes: [
+          "id",
+          "fullName",
+          "userName",
+          [
+            sequelize.literal(`(
+              SELECT cm.conversationId 
+              FROM ConversationMembers cm
+              INNER JOIN ConversationMembers cm2 ON cm.conversationId = cm2.conversationId
+              INNER JOIN Conversations c ON cm.conversationId = c.id
+              WHERE cm.userId = User.id 
+              AND cm2.userId = '${currentUserId}'
+              AND c.type = 'PRIVATE'
+              LIMIT 1
+            )`),
+            "conversationId",
+          ],
         ],
+        include: [includeProfile],
+        transaction,
       });
 
-      return users;
+      return users.map((user) => {
+        const userJson = user.toJSON();
+        return userJson;
+      });
     } catch (error) {
       throw error;
     }

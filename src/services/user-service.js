@@ -224,10 +224,14 @@ class UserService {
   }
 
   async searchUsers(data) {
+    const transaction = await db.sequelize.transaction();
+
     try {
-      const users = await userRepository.searchUsers(data);
+      const users = await userRepository.searchUsers(data, transaction);
+      await transaction.commit();
       return users;
     } catch (error) {
+      await transaction.rollback();
       this.#handleError(error);
     }
   }

@@ -94,7 +94,6 @@ class SocketService {
 
       // Join each conversation room
       conversations.forEach((member) => {
-        console.log("From socket ===>>>>>>", member.conversationId);
         socket.join(`conversation:${member.conversationId}`);
       });
     } catch (error) {
@@ -124,14 +123,15 @@ class SocketService {
             conversationId
           );
 
-          await member.update(
-            {
-              unreadCount: 0,
-              lastReadAt: new Date().toISOString(),
-            }
-          );
+          await member.update({
+            unreadCount: 0,
+            lastReadAt: new Date().toISOString(),
+          });
 
-          this.io.emit("conversation_joined", { conversationId, userId: socket.userId, });
+          this.io.emit("conversation_joined", {
+            conversationId,
+            userId: socket.userId,
+          });
 
           // Mark messages as read when joining
           //   await this.markMessagesAsRead(conversationId, socket.userId);
@@ -159,16 +159,14 @@ class SocketService {
       });
       const lastMessage = await ConversationMessage.findOne({
         where: { conversationId: conversationId },
-        order: [['createdAt', 'DESC']]
+        order: [["createdAt", "DESC"]],
       });
 
       if (member && lastMessage) {
-        await member.update(
-          {
-            lastReadMessageId: lastMessage.id,
-            lastReadAt: new Date().toISOString(),
-          }
-        );
+        await member.update({
+          lastReadMessageId: lastMessage.id,
+          lastReadAt: new Date().toISOString(),
+        });
       }
 
       socket.leave(`conversation:${conversationId}`);
@@ -176,7 +174,10 @@ class SocketService {
         `user:${socket.userId}:active_conversations`,
         conversationId
       );
-      this.io.emit("conversation_left", { conversationId, userId: socket.userId, });
+      this.io.emit("conversation_left", {
+        conversationId,
+        userId: socket.userId,
+      });
     });
   }
 
