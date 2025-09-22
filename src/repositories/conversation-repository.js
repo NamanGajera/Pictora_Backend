@@ -224,7 +224,9 @@ class ConversationRepository {
           { conversationId: newConversation.id, userId: recipientUserId },
         ];
 
-        await ConversationMember.bulkCreate(conversationMembers, { transaction });
+        await ConversationMember.bulkCreate(conversationMembers, {
+          transaction,
+        });
 
         // 🔹 Fetch conversation again with members
         const conversationWithMembers = await Conversation.findOne({
@@ -293,7 +295,9 @@ class ConversationRepository {
           userId,
         }));
 
-        await ConversationMember.bulkCreate(conversationMembers, { transaction });
+        await ConversationMember.bulkCreate(conversationMembers, {
+          transaction,
+        });
 
         const conversationWithMembers = await Conversation.findOne({
           where: { id: newConversation.id },
@@ -331,7 +335,6 @@ class ConversationRepository {
       throw error;
     }
   }
-
 
   async getAllConversationsForUser(userId) {
     try {

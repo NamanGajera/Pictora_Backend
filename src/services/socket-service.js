@@ -58,7 +58,6 @@ class SocketService {
         onlineUsers.push(userId);
       }
     }
-    console.log("Online Users:", onlineUsers);
 
     this.io.emit("online_users", onlineUsers);
 
@@ -75,10 +74,6 @@ class SocketService {
 
     // Handle typing events
     this.handleTypingEvents(socket);
-
-    this.io.on("conversation_joined", (data) => {
-      console.log("Data ==>>>>", data);
-    });
 
     // Handle disconnect
     socket.on("disconnect", () => this.handleDisconnect(socket));
@@ -123,14 +118,25 @@ class SocketService {
             conversationId
           );
 
+          await this.redis.expire(
+            `user:${socket.userId}:active_conversations`,
+            60 * 60 * 2
+          );
+
           await member.update({
             unreadCount: 0,
             lastReadAt: new Date().toISOString(),
           });
 
+          const lastMessage = await ConversationMessage.findOne({
+            where: { conversationId: conversationId },
+            order: [["createdAt", "DESC"]],
+          });
+
           this.io.emit("conversation_joined", {
             conversationId,
             userId: socket.userId,
+            lastMessageId: lastMessage.id,
           });
 
           // Mark messages as read when joining
@@ -148,8 +154,6 @@ class SocketService {
 
     // Leave a conversation
     socket.on("leave_conversation", async (data) => {
-      console.log("logg==>>>>", data);
-
       const { conversationId } = data;
       const member = await ConversationMember.findOne({
         where: {
@@ -234,10 +238,14 @@ class SocketService {
     const status = isOnline ? "online" : "offline";
     const lastSeen = new Date().toISOString();
 
-    await this.redis.hset(`user:${userId}:presence`, {
+    const key = `user:${userId}:presence`;
+
+    await this.redis.hset(key, {
       status,
       lastSeen,
     });
+
+    await this.redis.expire(key, 60 * 60 * 12);
   }
 
   async markMessagesAsRead(conversationId, userId) {
